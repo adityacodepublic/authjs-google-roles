@@ -1,6 +1,7 @@
 import Image from "next/image";
 import logo from "@/components/elements/small.svg"
 import Menu from "./nav-menu";
+import { SignedIn } from "./signed-in";
 
 const Navbar = async () => {
   
@@ -10,9 +11,9 @@ const Navbar = async () => {
             <div className="ml-0 mt-2 aspect-square">
             <Image src={logo} alt="logo" width={50} height={50} className="w-24 h-24"/>
             </div>
-            <div>
-            <Menu />
-            </div>
+            <SignedIn>
+              <Menu />
+            </SignedIn>
         </div>
       </div>
     );
