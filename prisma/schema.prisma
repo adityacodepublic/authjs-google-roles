@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Used by Auth
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  image         String?
+  role          String?         @default("null")
+  accounts      Account[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@id([provider, providerAccountId])
+}
+
+
+
+
+model Process {
+  id      String  @id @default(uuid())
+  name    String
+  batches Batch[] @relation("ProcessToBatch")
+}
+
+model Batch {
+  id        String  @id @default(uuid())
+  batch     String
+  processId String
+  process   Process @relation("ProcessToBatch", fields: [processId], references: [id])
+  completed Boolean @default(false)
+  logs      Log[]   @relation("BatchToProcess")
+
+  @@index([processId])
+}
+
+model Log {
+  id       String   @id @default(cuid())
+  batchId  String
+  batch    Batch    @relation("BatchToProcess", fields: [batchId], references: [id])
+  quantity Int      @default(0)
+  start    DateTime @default(now())
+  pause    DateTime @updatedAt
+
+  @@index([batchId])
+}
