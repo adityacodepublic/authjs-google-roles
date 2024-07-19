@@ -1,7 +1,6 @@
 import getData from "@/actions/get-data"
 import SignIn from "@/app/(auth)/signin/page";
 import { auth } from "@/auth"
-import { useCurrentRole } from "@/hooks/use-current-role";
 
 const OrdersPage = async() => {
 
@@ -16,7 +15,6 @@ const OrdersPage = async() => {
     )
 }
 
-export default OrdersPage
-// useSession in client 
-// auth       in server
+export default OrdersPage;
+
 

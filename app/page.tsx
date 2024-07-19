@@ -1,12 +1,14 @@
 import SignOutButton from "@/components/auth/signout-button";
 import { Button } from "@/components/ui/button"
+import { getCurrentRole } from "@/lib/get-current-role";
 import { getSignInStatus } from "@/lib/get-signin-status";
 import { redirect } from "next/navigation";
 
 
 export const StartPage = async() => {
   const loggedin = await getSignInStatus();
-  if(loggedin) redirect("/orders");
+  const role = await getCurrentRole();
+  if(loggedin && (role?.toLowerCase() != "null")) redirect("/orders");
   return (
     <div className="relative flex items-center justify-center h-full w-full bg-slate-800">
       <div className="absolute h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]">

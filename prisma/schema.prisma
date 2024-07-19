@@ -8,7 +8,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Used by Auth
+// Auth
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -42,6 +42,55 @@ model Account {
   @@id([provider, providerAccountId])
 }
 
+
+// Order
+model Order {
+  id           String        @id
+  description  String
+  org          String?
+  organisation organisation? @relation("OrgToOrder", fields: [org], references: [id])
+  printing     String        @db.VarChar(20)
+  filmSize     String?        @db.VarChar(20)
+  flimSizes FilmSize? @relation(fields: [filmSize], references: [id])
+  canSize      String?        @db.VarChar(20)
+  canSizes CanSize? @relation(fields: [canSize], references: [id])
+  type         String        @db.VarChar(30)
+  wireType     String?        @db.VarChar(20)
+  wireTypes WireType? @relation(fields: [wireType], references: [id])
+  wireLength   String        @db.VarChar(20)
+  quantity     Int
+  complete     Boolean       @default(false)
+  batches      Batch[]       @relation("OrderToBatch")
+  createdAt    DateTime      @default(now())
+  completedAt  DateTime? //@updatedAt
+
+  @@index([org])
+}
+
+model FilmSize {
+  id String  @id 
+  name String
+  orders Order[]
+}
+
+model CanSize {
+  id String  @id 
+  name String
+  orders Order[]
+}
+
+model WireType {
+  id String  @id 
+  name String
+  orders Order[]
+}
+
+model organisation {
+  id     String  @id @default(cuid())
+  name   String
+  orders Order[] @relation("OrgToOrder")
+}
+
 model Process {
   id      String  @id @default(uuid())
   name    String
@@ -49,14 +98,18 @@ model Process {
 }
 
 model Batch {
-  id        String  @id @default(uuid())
+  id        String         @id @default(uuid())
+  orderId   String
+  order     Order          @relation("OrderToBatch", fields: [orderId], references: [id], onDelete: Cascade)
   batch     String
   processId String
-  process   Process @relation("ProcessToBatch", fields: [processId], references: [id])
-  completed Boolean @default(false)
-  logs      Log[]   @relation("BatchToProcess")
+  process   Process        @relation("ProcessToBatch", fields: [processId], references: [id])
+  completed Boolean        @default(false)
+  logs      Log[]          @relation("BatchToProcess")
+  stockLogs OutStockLogs[] @relation("BatchToOutStockLogs")
 
   @@index([processId])
+  @@index([orderId])
 }
 
 model Log {
@@ -79,4 +132,72 @@ model ExcessStock {
   quantity  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+
+// Inventory
+// Product === Raw Material
+model Supplier {
+  id       String                 @id @default(cuid())
+  name     String
+  contacts String[]
+  address  String
+  products SupplierProductItems[] @relation("SupplierToItems")
+}
+
+model ProductCategory {
+  id       String    @id @default(cuid())
+  name     String
+  products Product[] @relation("ProductCategoryToProduct")
+}
+
+model SupplierProductItems {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation("SupplierToItems", fields: [supplierId], references: [id])
+  productId  String
+  product    Product  @relation("ProductToItems", fields: [productId], references: [code], onDelete:Cascade )
+
+  @@index([supplierId])
+  @@index([productId])
+}
+
+model Product {
+  code              String                 @id
+  suppliers         SupplierProductItems[] @relation("ProductToItems")
+  productCategoryId String
+  productCategory   ProductCategory        @relation("ProductCategoryToProduct", fields: [productCategoryId], references: [id])
+  valueUnit         String                 @db.VarChar(15)
+  quantity          Int
+  inQuantity        InStockLogs[]          @relation("ProductToInStockLogs")
+  outQuantity       OutStockLogs[]         @relation("ProductToOutStockLogs")
+  updatedAt         DateTime               @updatedAt
+
+
+  @@index([productCategoryId])
+}
+
+model InStockLogs {
+  id        String   @id @default(cuid())
+  productId String
+  products  Product  @relation("ProductToInStockLogs", fields: [productId], references: [code])
+  userId    String
+  quantity  Int
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model OutStockLogs {
+  id        String   @id @default(cuid())
+  productId String
+  products  Product  @relation("ProductToOutStockLogs", fields: [productId], references: [code])
+  userId    String
+  batchId   String
+  batch     Batch    @relation("BatchToOutStockLogs", fields: [batchId], references: [id])
+  quantity  Int
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([batchId])
 }

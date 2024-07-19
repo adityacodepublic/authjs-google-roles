@@ -1,4 +1,4 @@
-import authConfig from "./auth.config";
+import authConfig from "@/auth.config";
 import NextAuth from "next-auth";
 import {
   DEFAULT_lOGIN_REDIRECT,
@@ -18,6 +18,8 @@ export default auth((req) => {
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname) ;
   
+  console.log(req.auth);
+
   if(isApiRoute){
     return;
   }
