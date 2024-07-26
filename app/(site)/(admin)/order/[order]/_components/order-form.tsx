@@ -6,7 +6,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import * as z from "zod";
-import { filmSize, canSize, wireType } from "./utildata";
 import {
   Form,
   FormControl,
@@ -17,45 +16,35 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
   CommandItem,
-  CommandList,
 } from "@/components/ui/command"
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import toast from "react-hot-toast";
 import { AlertModal } from "@/components/alert-modal";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown, Trash } from "lucide-react";
+import { Trash } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Order, organisation } from "@prisma/client";
-import { createCustomer, deleteOrder, submitOrder, updateOrder } from "@/actions/order-form-action";
+import { CanSize, FilmSize, Order, organisation, WireType } from "@prisma/client";
+import { createCansize, createCustomer, createFlimsize, createWiretype, deleteCansize, deleteCustomer, deleteFlimsize, deleteOrder, deleteWiretype, submitOrder, updateCansize, updateCustomer, updateFlimsize, updateOrder, updateWiretype } from "@/actions/order-form-action";
 import { formSchema } from "@/lib/_schema/orderSchema"
+import { MultiSelect } from "./multiselect";
 
 
 interface OrderFormProps {
   initialData: Order | null,
-  orgs:organisation[]
+  orgs:organisation[],
+  flimSize:FilmSize[],
+  canSize:CanSize[],
+  wireType:WireType[],
 }
 export const OrderForm:React.FC<OrderFormProps> = ({
-  initialData,orgs
+  initialData,orgs,flimSize,canSize,wireType
 }) => {
   const router = useRouter();
   const [frameworks, setFrameworks] = useState<organisation[]>(orgs);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState<string>("");
-  const film = filmSize;
-  const wire = wireType;
-  const can  = canSize;
 
   const resetValues = {
     description: "",
@@ -204,62 +193,19 @@ export const OrderForm:React.FC<OrderFormProps> = ({
                 <FormDescription>
                   Select customer.
                 </FormDescription>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          " justify-between",
-                          !field.value && "text-muted-foreground"
-                        )}
-                        disabled={loading}
-                      >
-                        {field.value
-                          ? frameworks.find(
-                              (org) => org.id === field.value
-                            )?.name
-                          : "Select customer"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="-mt-11 p-0">
-                    <Command>
-                      <CommandInput className="h-[2.4rem]" placeholder="Search customer..." value={inputValue} onValueChange={setInputValue}/>
-                      <CommandEmpty>No customer found.</CommandEmpty>
-                      <CommandList>
-                        <CommandGroup>
-                          {frameworks.map((language) => (
-                            <CommandItem
-                              value={language.name}
-                              key={language.id}
-                              onSelect={() => {
-                                form.setValue("org", language.id)
-                              }}
-                              disabled={loading}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  language.id === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {language.name}
-                            </CommandItem>
-                          ))}
-                          <CommandItemCreate
-                            onSelect={() => createFramework(inputValue)}
-                            {...{ inputValue, frameworks }}
-                          />
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                  <FormControl>
+                    <MultiSelect
+                      data={orgs}
+                      onValueChange={field.onChange}
+                      defaultValue={initialData? [initialData?.org]:[]}
+                      placeholder="customer"
+                      loading={loading}
+                      setLoading={setLoading}
+                      createValues={createCustomer}
+                      updateValues={updateCustomer}
+                      deleteValues={deleteCustomer}
+                    />
+                  </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -286,17 +232,18 @@ export const OrderForm:React.FC<OrderFormProps> = ({
                 <FormLabel>Film Size <span className="text-red-600">*</span></FormLabel>
                 <FormDescription>Select the film size in μm.</FormDescription>
                 <FormControl>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loading}>
-                    <SelectTrigger aria-label="Film Size">
-                      <SelectValue placeholder="Choose" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {film.map((item, index)=>(
-                        <SelectItem key={item.name+index} value={item.name}>{item.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
+                    <MultiSelect
+                      data={flimSize}
+                      onValueChange={field.onChange}
+                      defaultValue={initialData? [initialData?.filmSize]:[]}
+                      placeholder="flim"
+                      loading={loading}
+                      setLoading={setLoading}
+                      createValues={createFlimsize}
+                      updateValues={updateFlimsize}
+                      deleteValues={deleteFlimsize}
+                    />
+                  </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -307,18 +254,19 @@ export const OrderForm:React.FC<OrderFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Can Size <span className="text-red-600">*</span></FormLabel>
-                <FormControl>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loading}>
-                    <SelectTrigger aria-label="Can Size">
-                      <SelectValue placeholder="Choose" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {can.map((item, index)=>(
-                        <SelectItem key={item.name+index} value={item.name}>{item.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
+                  <FormControl>
+                    <MultiSelect
+                      data={canSize}
+                      onValueChange={field.onChange}
+                      defaultValue={initialData? [initialData?.canSize]:[]}
+                      placeholder="can size"
+                      loading={loading}
+                      setLoading={setLoading}
+                      createValues={createCansize}
+                      updateValues={updateCansize}
+                      deleteValues={deleteCansize}
+                    />
+                  </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -357,18 +305,19 @@ export const OrderForm:React.FC<OrderFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Wire Type <span className="text-red-600">*</span></FormLabel>
-                <FormControl>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loading}>
-                    <SelectTrigger aria-label="Wire Type">
-                      <SelectValue placeholder="Choose"/>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {wire.map((item, index)=>(
-                        <SelectItem key={item.name+index} value={item.name}>{item.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
+                  <FormControl>
+                    <MultiSelect
+                      data={wireType}
+                      onValueChange={field.onChange}
+                      defaultValue={initialData? [initialData?.wireType]:[]}
+                      placeholder="wire type"
+                      loading={loading}
+                      setLoading={setLoading}
+                      createValues={createWiretype}
+                      updateValues={updateWiretype}
+                      deleteValues={deleteWiretype}
+                    />
+                  </FormControl>
                 <FormMessage />
               </FormItem>
             )}

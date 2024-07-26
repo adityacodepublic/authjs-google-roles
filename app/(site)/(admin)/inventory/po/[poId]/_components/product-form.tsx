@@ -37,7 +37,7 @@ import { Check, ChevronsUpDown, Trash } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Product, ProductCategory, Supplier } from "@prisma/client";
 import { deleteProduct, submitProduct, updateProduct } from "@/actions/product-form-action";
-import { formSchema } from "@/lib/_schema/productSchema"
+import { formSchema } from "@/lib/_schema/inventory/productSchema"
 import useFormState from "@/hooks/use-form-state";
 import { MultiSelect } from "@/components/multiselect";
 

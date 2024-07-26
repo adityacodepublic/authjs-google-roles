@@ -42,46 +42,46 @@ model Account {
   @@id([provider, providerAccountId])
 }
 
-
 // Order
 model Order {
-  id           String        @id
+  id           String       @id
   description  String
-  org          String?
-  organisation organisation? @relation("OrgToOrder", fields: [org], references: [id])
-  printing     String        @db.VarChar(20)
-  filmSize     String?        @db.VarChar(20)
-  flimSizes FilmSize? @relation(fields: [filmSize], references: [id])
-  canSize      String?        @db.VarChar(20)
-  canSizes CanSize? @relation(fields: [canSize], references: [id])
-  type         String        @db.VarChar(30)
-  wireType     String?        @db.VarChar(20)
-  wireTypes WireType? @relation(fields: [wireType], references: [id])
-  wireLength   String        @db.VarChar(20)
+  org          String
+  organisation organisation @relation("OrgToOrder", fields: [org], references: [id])
+  printing     String       @db.VarChar(20)
+  filmSize     String       @db.VarChar(20)
+  flimSizes    FilmSize     @relation(fields: [filmSize], references: [id])
+  canSize      String       @db.VarChar(20)
+  canSizes     CanSize      @relation(fields: [canSize], references: [id])
+  type         String       @db.VarChar(30)
+  wireType     String       @db.VarChar(20)
+  wireTypes    WireType     @relation(fields: [wireType], references: [id])
+  wireLength   String       @db.VarChar(20)
   quantity     Int
-  complete     Boolean       @default(false)
-  batches      Batch[]       @relation("OrderToBatch")
-  createdAt    DateTime      @default(now())
-  completedAt  DateTime? //@updatedAt
+  complete     Boolean      @default(false)
+  batches      Batch[]      @relation("OrderToBatch")
+  user         String       // get details from cache util 
+  createdAt    DateTime     @default(now())
+  completedAt  DateTime?
 
   @@index([org])
 }
 
 model FilmSize {
-  id String  @id 
-  name String
+  id     String  @id
+  name   String
   orders Order[]
 }
 
 model CanSize {
-  id String  @id 
-  name String
+  id     String  @id
+  name   String
   orders Order[]
 }
 
 model WireType {
-  id String  @id 
-  name String
+  id     String  @id
+  name   String
   orders Order[]
 }
 
@@ -116,9 +116,9 @@ model Log {
   id      String @id @default(cuid())
   batchId String
   batch   Batch  @relation("BatchToProcess", fields: [batchId], references: [id])
+  user    String // Will get details from the cache util 
 
-  quantity Int    @default(0)
-  empid    String
+  quantity Int @default(0)
 
   start DateTime @default(now())
   pause DateTime @updatedAt
@@ -134,16 +134,16 @@ model ExcessStock {
   updatedAt DateTime @updatedAt
 }
 
-
 // Inventory
 // Product === Raw Material
 model Supplier {
-  id       String                 @id @default(cuid())
+  id       String    @id @default(cuid())
   name     String
-  contacts String[]
+  contacts String[]  // contacts: name-contact, email - util
   address  String
-  products SupplierProductItems[] @relation("SupplierToItems")
+  products InStock[] @relation("SupplierToProduct")
 }
+
 
 model ProductCategory {
   id       String    @id @default(cuid())
@@ -151,41 +151,52 @@ model ProductCategory {
   products Product[] @relation("ProductCategoryToProduct")
 }
 
-model SupplierProductItems {
-  id         String   @id @default(cuid())
-  supplierId String
-  supplier   Supplier @relation("SupplierToItems", fields: [supplierId], references: [id])
-  productId  String
-  product    Product  @relation("ProductToItems", fields: [productId], references: [code], onDelete:Cascade )
-
-  @@index([supplierId])
-  @@index([productId])
-}
-
 model Product {
-  code              String                 @id
-  suppliers         SupplierProductItems[] @relation("ProductToItems")
+  code              String          @id
+  name              String
   productCategoryId String
-  productCategory   ProductCategory        @relation("ProductCategoryToProduct", fields: [productCategoryId], references: [id])
-  valueUnit         String                 @db.VarChar(15)
+  productCategory   ProductCategory @relation("ProductCategoryToProduct", fields: [productCategoryId], references: [id])
+  valueUnit         String          @db.VarChar(15)
   quantity          Int
-  inQuantity        InStockLogs[]          @relation("ProductToInStockLogs")
-  outQuantity       OutStockLogs[]         @relation("ProductToOutStockLogs")
-  updatedAt         DateTime               @updatedAt
-
+  inQuantity        ProductIn[]
+  outQuantity       OutStockLogs[]  @relation("ProductToOutStockLogs")
+  updatedAt         DateTime        @updatedAt
 
   @@index([productCategoryId])
 }
 
-model InStockLogs {
-  id        String   @id @default(cuid())
+model InStock {
+  id         String      @id @default(cuid())
+  user       String      // get details through cache util util
+  supplierId String
+  supplier   Supplier    @relation("SupplierToProduct", fields: [supplierId], references: [id])
+  products   ProductIn[]
+  totalPrice Float
+  payment    Boolean     @default(true)
+  paymentDays Int         @default(0)
+  delivery   Boolean      @default(true)
+  deliveryDays Int       @default(0)
+  updated    Boolean     @default(false)
+  confirmed  Boolean     @default(true)  // false for po 
+  po         Boolean     @default(false)
+  poData     String?     
+  updatedAt  DateTime    @updatedAt
+  // pending in days as difference between pendingDays and updatedAt
+  @@index([supplierId])
+}
+
+model ProductIn {  // code description amount 
+  id        String  @id @default(cuid())
+  instockId String
+  inStock   InStock @relation(fields: [instockId], references: [id])
   productId String
-  products  Product  @relation("ProductToInStockLogs", fields: [productId], references: [code])
-  userId    String
+  product   Product @relation(fields: [productId], references: [code])
+  description String? // instead of product name 
   quantity  Int
-  updatedAt DateTime @updatedAt
+  amount    Int
 
   @@index([productId])
+  @@index([instockId])
 }
 
 model OutStockLogs {

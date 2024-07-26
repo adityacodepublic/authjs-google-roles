@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const formSchema = z.object({
   description: z.string().min(1, { message: "Description is required." }),
-  org: z.string({required_error: "Please select a customer."}).nullable(),
+  org: z.string({required_error: "Please select a customer."}),
   printing: z.string().min(1, { message: "Printing is required." }),
   filmSize: z.string().min(1, { message: "Film Size is required." }),
   canSize: z.string().min(1, { message: "Can Size is required." }),

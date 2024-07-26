@@ -1,5 +1,5 @@
 import prismadb from "@/lib/prismadb";
-import { PurchaseForm }  from "./_components/purchase-form";
+import { ProductForm }  from "./_components/product-form";
 
 const ProductPage = async ({
   params
@@ -56,7 +56,7 @@ const ProductPage = async ({
   return ( 
     <div className="flex-col bg-[#fffff5]">
       <div className="flex-1 justify-center items-center space-y-4 p-2 py-2">
-        <PurchaseForm initialData={null} suppliers={suppliers} prodCategories={categories} po={true}/>
+        <ProductForm initialData={transform(initial)} suppliers={suppliers} prodCategories={categories}/>
       </div>
     </div>
   );

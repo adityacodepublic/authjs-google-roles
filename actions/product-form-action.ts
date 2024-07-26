@@ -4,7 +4,6 @@ import { getSignInStatus } from "@/lib/get-signin-status";
 import prismadb from "@/lib/prismadb";
 import { Prisma, ProductCategory } from "@prisma/client";
 import { revalidateTag } from "next/cache";
-import { NextResponse } from "next/server";
 
 
 

@@ -19,7 +19,7 @@ import { toast } from "react-hot-toast";
 import { Supplier } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { formSchema } from "@/lib/_schema/supplierSchema"
+import { formSchema } from "@/lib/_schema/inventory/supplierSchema"
 import { deleteSupplier, submitSupplier, updateSupplier } from "@/actions/supplier-form-action";
 import { AlertModal } from "@/components/alert-modal";
 import { Plus, Trash } from "lucide-react";
