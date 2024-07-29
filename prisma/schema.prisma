@@ -60,7 +60,7 @@ model Order {
   quantity     Int
   complete     Boolean      @default(false)
   batches      Batch[]      @relation("OrderToBatch")
-  user         String       // get details from cache util 
+  user         String // get details from cache util 
   createdAt    DateTime     @default(now())
   completedAt  DateTime?
 
@@ -139,11 +139,10 @@ model ExcessStock {
 model Supplier {
   id       String    @id @default(cuid())
   name     String
-  contacts String[]  // contacts: name-contact, email - util
+  contacts String[] // contacts: name-contact, email - util
   address  String
   products InStock[] @relation("SupplierToProduct")
 }
-
 
 model ProductCategory {
   id       String    @id @default(cuid())
@@ -166,34 +165,37 @@ model Product {
 }
 
 model InStock {
-  id         String      @id @default(cuid())
-  user       String      // get details through cache util util
-  supplierId String
-  supplier   Supplier    @relation("SupplierToProduct", fields: [supplierId], references: [id])
-  products   ProductIn[]
-  totalPrice Float
-  payment    Boolean     @default(true)
-  paymentDays Int         @default(0)
-  delivery   Boolean      @default(true)
-  deliveryDays Int       @default(0)
-  updated    Boolean     @default(false)
-  confirmed  Boolean     @default(true)  // false for po 
-  po         Boolean     @default(false)
-  poData     String?     
-  updatedAt  DateTime    @updatedAt
+  id           String      @id @default(cuid())
+  user         String // get details through cache util util
+  supplierId   String
+  supplier     Supplier    @relation("SupplierToProduct", fields: [supplierId], references: [id])
+  products     ProductIn[]
+  totalPrice   Float
+  payment      Boolean     @default(true)
+  paymentDays  Int         @default(0)
+  delivery     Boolean     @default(true)
+  deliveryDays Int         @default(0)
+  updated      Boolean     @default(false)
+  confirmed    Boolean     @default(true) // false for po 
+  po           Boolean     @default(false)
+  poData       String?
+  updatedAt    DateTime    @updatedAt
+
   // pending in days as difference between pendingDays and updatedAt
   @@index([supplierId])
 }
 
-model ProductIn {  // code description amount 
-  id        String  @id @default(cuid())
-  instockId String
-  inStock   InStock @relation(fields: [instockId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [code])
-  description String? // instead of product name 
-  quantity  Int
-  amount    Int
+model ProductIn {
+  id          String  @id @default(cuid())
+  instockId   String
+  inStock     InStock @relation(fields: [instockId], references: [id])
+  productId   String
+  product     Product @relation(fields: [productId], references: [code])
+  description String
+  quantity    Int
+  unitRate    Int
+  boxes       String?
+  amount      Int
 
   @@index([productId])
   @@index([instockId])

@@ -9,10 +9,9 @@ import { revalidateTag } from "next/cache";
 
 type ProductData = {
   code: string;
+  name : string;
+  productCategoryId: string;
   valueUnit: string;
-  quantity: number;
-  suppliers: string[];
-  productCategory: string;
 };
 
 export const deleteProduct = async (id:string):Promise<{status:number}> => {
@@ -35,16 +34,10 @@ export const submitProduct = async (data: ProductData):Promise<{status:number, m
       const product = await prismadb.product.create({
         data:{
           code:data.code,
-          productCategoryId:data.productCategory,
+          name: data.name,
+          productCategoryId:data.productCategoryId,
           valueUnit:data.valueUnit,
-          quantity:data.quantity,
-          suppliers:{
-            createMany:{
-              data:[
-                ...data.suppliers.map((supplier)=>({supplierId:supplier}))
-              ]
-            }
-          }
+          quantity:0
         }
       });
       revalidateTag("product");
@@ -69,33 +62,12 @@ export const updateProduct = async (data: ProductData, id:string):Promise<{statu
           code:id
         },
         data:{
-          productCategoryId:data.productCategory,
+          productCategoryId:data.productCategoryId,
           valueUnit:data.valueUnit,
-          quantity:data.quantity,
-          suppliers:{
-            deleteMany:{}
-          }
-        }
-      });
-      const product = await prismadb.product.update({
-        where:{
-          code:id
-        },
-        data:{
-          suppliers:{
-            createMany:{
-              data:[
-                ...data.suppliers.map((supplier)=>({supplierId:supplier}))
-              ]
-            }
-          }
-        },
-        include:{
-          suppliers:true
+          name:data.name
         }
       });
       revalidateTag("product");
-      console.log(product);
       return {status:200, message:"Product Updated Successfully"};
     }
     else return {status:401, message:"Invalid request"};

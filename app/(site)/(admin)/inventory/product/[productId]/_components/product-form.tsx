@@ -15,20 +15,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator
-} from "@/components/ui/command"
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 import { AlertModal } from "@/components/alert-modal";
@@ -41,74 +27,44 @@ import { formSchema } from "@/lib/_schema/inventory/productSchema"
 import useFormState from "@/hooks/use-form-state";
 import { MultiSelect } from "@/components/multiselect";
 
-type supplierData = {
-  id: string;
-  name: string;
-};
 
 interface ProductFormProps {
   initialData: z.infer<typeof formSchema> | null,
-  suppliers:supplierData[],
   prodCategories: ProductCategory[]
 }
 export const ProductForm:React.FC<ProductFormProps> = ({
-  initialData, suppliers, prodCategories
+  initialData, prodCategories
 }) => {
   const router = useRouter();
-  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>(initialData ? initialData.suppliers:[])
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [inputValue, setInputValue] = useState<string>("");
   const {data, setData, clearData} = useFormState();
 
   const resetValues = {
-    code: "",
-    suppliers: [],
-    productCategory: "",
+    name: "",
     valueUnit:"",
-    quantity: 0,
   };
 
-  const transformData = (data: any) => {
-    if (!data) {
-      return resetValues;
-    }
-    return {
-      code: data.code ?? "",
-      suppliers: data.suppliers?.map((supplierItem: any) => supplierItem?.supplier?.name) || [],
-      productCategory: data.productCategoryId ?? "",
-      valueUnit: data.valueUnit ?? "",
-      quantity: data.quantity ?? 0,
-    };
-  };
-  
   const defaultValues = initialData ? {
     ...initialData
-  } : transformData(data) 
-
+  } : {
+    name:"",
+    productCategoryId:"",
+    valueUnit:"",
+    code:""
+  } 
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues
   });
 
-  const toggleOptions = (framework: string) => {
-    setSelectedSuppliers((currentSuppliers) =>
-      currentSuppliers.includes(framework)
-        ? currentSuppliers.filter((f) => f!== framework)
-        : [...currentSuppliers, framework]
-    );
-  };
-
-  useEffect(()=>{
-    form.setValue("suppliers", selectedSuppliers);
-  },[selectedSuppliers])
-
   const createSupplier = () => {
     setData(form.getValues);
     router.push('/inventory/supplier/new');
     // route to list to edit or create new
   }
+  
   
   const onSubmit = async(data: z.infer<typeof formSchema>) => {
     try {
@@ -189,88 +145,33 @@ export const ProductForm:React.FC<ProductFormProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Product Code<span className="text-red-600">*</span></FormLabel>
-                <FormDescription>Product code eg: 25MFD 440V, PP Can</FormDescription>
+                <FormDescription>Product code eg: WTM1620BL</FormDescription>
                 <FormControl>
                   <Input placeholder="Your answer" disabled={loading || !!initialData} {...field} />
                 </FormControl>
                 {initialData &&
-                <FormMessage>Product code cannot be updated, to update delete this and create new product.</FormMessage>}
+                <FormMessage>Product code cannot be updated. To update, delete this and create new product.</FormMessage>}
                 <FormMessage />
               </FormItem>
             )}
           />
           <FormField
             control={form.control}
-            name="suppliers"
+            name="name"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Suppliers<span className="text-red-600">*</span></FormLabel>
-                <FormDescription>
-                  Select suppliers.
-                </FormDescription>
-                <Popover>
-                  <div className="max-w-[400px] ">
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            " justify-between w-[300px]",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          disabled={loading}
-                        >
-                          {field.value.length !== 0
-                            ? suppliers.filter(item=> field.value.includes(item.id)).map((name)=>name.name).join(", ")
-                            : "Select Suppliers"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className=" p-0">
-                      <Command>
-                        <CommandInput className="h-[2.4rem]" placeholder="Search customer..." value={inputValue} onValueChange={setInputValue}/>
-                        <CommandEmpty>No supplier found.</CommandEmpty>
-                        <CommandList>
-                          <CommandGroup>
-                            {suppliers.map((language) => (
-                              <CommandItem
-                                value={language.name}
-                                key={language.id}
-                                onSelect={() => { toggleOptions(language.id); }}
-                                disabled={loading}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedSuppliers.includes(language.id)
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {language.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                          <CommandSeparator alwaysRender/>
-                          <CommandGroup>
-                            <CommandItem onClick={createSupplier}>
-                              {"Create or edit supplier"}
-                            </CommandItem>
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </div>
-                </Popover>
+              <FormItem>
+                <FormLabel>Description<span className="text-red-600">*</span></FormLabel>
+                <FormDescription>Product Description eg: COPPER CABLE 16X0.2</FormDescription>
+                <FormControl>
+                  <Input placeholder="Your answer" disabled={loading } {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
           <FormField
             control={form.control}
-            name="productCategory"
+            name="productCategoryId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Product Category</FormLabel>
@@ -281,7 +182,7 @@ export const ProductForm:React.FC<ProductFormProps> = ({
                   <MultiSelect
                     data={prodCategories}
                     onValueChange={field.onChange}
-                    defaultValue={initialData? [initialData?.productCategory]:[]}
+                    defaultValue={initialData? [initialData?.productCategoryId]:[]}
                     placeholder="Select options"
                     loading={loading}
                     setLoading={setLoading}
@@ -300,20 +201,6 @@ export const ProductForm:React.FC<ProductFormProps> = ({
                 <FormDescription>Add unit of the product.</FormDescription>
                 <FormControl>
                   <Input placeholder="Your answer" disabled={loading} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {/* multiselect */}
-          <FormField
-            control={form.control}
-            name="quantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantity <span className="text-red-600">*</span></FormLabel>
-                <FormControl>
-                  <Input placeholder="Your answer" disabled={loading} {...field} type="number" />
                 </FormControl>
                 <FormMessage />
               </FormItem>

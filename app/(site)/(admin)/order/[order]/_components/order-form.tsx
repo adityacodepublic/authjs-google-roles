@@ -28,6 +28,7 @@ import { CanSize, FilmSize, Order, organisation, WireType } from "@prisma/client
 import { createCansize, createCustomer, createFlimsize, createWiretype, deleteCansize, deleteCustomer, deleteFlimsize, deleteOrder, deleteWiretype, submitOrder, updateCansize, updateCustomer, updateFlimsize, updateOrder, updateWiretype } from "@/actions/order-form-action";
 import { formSchema } from "@/lib/_schema/orderSchema"
 import { MultiSelect } from "./multiselect";
+import { useSession } from "next-auth/react";
 
 
 interface OrderFormProps {
@@ -97,6 +98,7 @@ export const OrderForm:React.FC<OrderFormProps> = ({
   const onSubmit = async(data: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
+      data.user = useSession().data?.user.id || "";
       let response;
       if(initialData) response = await updateOrder(data,initialData.id)
       else response = await submitOrder(data);

@@ -14,8 +14,11 @@ export const formSchema = z.object({
       }),
       quantity: z.coerce.number().int().min(1, {
         message: "Quantity must be at least 1 characters.",
-      }),
-      amount: z.coerce.number().min(1, {message:"Amount must be at least one chracter"})
+      }).optional(),
+      amount: z.coerce.number().min(1, {message:"Amount must be at least one chracter"}),
+      unitRate: z.coerce.number().min(1,{message:"Unit Rate must be a valid number."}).optional(),
+      qtybox: z.coerce.number().min(1, {message:"Quatation number must be at least one chracter"}).optional(),
+      qtyPerBoxes: z.coerce.number().min(1, {message:"Quatation number must be at least one chracter"}).optional(),
     })
   ).min(1, { message: "At least one product entry is required." }),
   totalPrice: z.coerce.number().min(1, {message:"Total amount must be at least one chracter"}),
@@ -32,8 +35,6 @@ export const formSchema = z.object({
   qtnDate: z.coerce.date().optional(),
   unitRate: z.coerce.number().min(1, {message:"Rate must be at least one chracter"}).optional(),
   boxes: z.boolean().default(false).optional(),
-  qtybox: z.coerce.number().min(1, {message:"Quatation number must be at least one chracter"}).optional(),
-  qtyPerBoxes: z.coerce.number().min(1, {message:"Quatation number must be at least one chracter"}).optional(),
   igst:  z.coerce.number().min(1, {message:"IGST must be at least one chracter"}).optional(),
   sgst:  z.coerce.number().min(1, {message:"SGST must be at least one chracter"}).optional(),
   cgst:  z.coerce.number().min(1, {message:"CGST must be at least one chracter"}).optional(),
@@ -43,14 +44,14 @@ export const formSchema = z.object({
 
 
 formSchema.superRefine((data, ctx) => {
-  if(data.boxes && !data.qtybox && !data.qtyPerBoxes){
+  if(data.boxes && !data.products[0].qtybox && !data.products[0].qtyPerBoxes){
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Boxes details necessary if boxes ticked",
       path: ['boxes'],
     })
   };
-  if(data.po && !data.qtnNo && !data.qtnDate && data.unitRate &&data.igst && data.sgst && data.cgst && data.transporter){
+  if(data.po && !data.qtnNo && !data.qtnDate && !data.unitRate && !data.igst && !data.sgst && !data.cgst && !data.transporter){
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Fill the complete purchase order details",

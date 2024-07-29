@@ -1,5 +1,5 @@
 import prismadb from "@/lib/prismadb";
-import { PurchaseForm }  from "./_components/purchase-form";
+import { ProductForm }  from "./_components/product-form";
 
 const ProductPage = async ({
   params
@@ -14,49 +14,21 @@ const ProductPage = async ({
       code:true,
       productCategoryId:true,
       valueUnit:true,
-      quantity:true,
-      suppliers:{
-        select:{
-          supplier:{
-            select:{
-              id:true,
-              name:true,
-            }
-          }
-        }
-      }
+      name:true
     },
   });
 
-  const supplier = prismadb.supplier.findMany({
-    select:{
-      id:true,
-      name:true,
-    }
-  })
-
   const productCategories = prismadb.productCategory.findMany();
 
-  const [initial,suppliers,categories] = await Promise.all([initialData,supplier,productCategories]);
+  const [initial,categories] = await Promise.all([initialData,productCategories]);
   
-  const transform = (data: typeof initial) => {
-    if (!data) return null;
-    const transformedData = {
-      suppliers: data.suppliers.map(supplierItem => supplierItem.supplier.id),
-      productCategory: data.productCategoryId,
-      code: data.code,
-      valueUnit: data.valueUnit,
-      quantity: data.quantity,
-    };
-  
-    return transformedData;
-  };
+
   
 
   return ( 
     <div className="flex-col bg-[#fffff5]">
       <div className="flex-1 justify-center items-center space-y-4 p-2 py-2">
-        <PurchaseForm initialData={null} suppliers={suppliers} prodCategories={categories} po={true}/>
+        <ProductForm initialData={initial} prodCategories={categories}/>
       </div>
     </div>
   );

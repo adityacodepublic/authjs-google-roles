@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { AwaitedReactNode, JSXElementConstructor, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -34,9 +34,9 @@ import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 import { AlertModal } from "@/components/alert-modal";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Check, ChevronsUpDown, Trash } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown, Plus, Trash } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Product, ProductCategory, Supplier } from "@prisma/client";
+import { Product, Supplier } from "@prisma/client";
 import { deleteProduct, submitProduct, updateProduct } from "@/actions/product-form-action";
 import { formSchema }  from "@/lib/_schema/inventory/purchaseSchema"
 import useFormState from "@/hooks/use-form-state";
@@ -52,32 +52,55 @@ type supplierData = {
 interface PurchaseFormProps {
   initialData: z.infer<typeof formSchema> | null,
   suppliers:supplierData[],
-  prodCategories: ProductCategory[]
+  products : Product[]
   po:boolean;
 }
 export const PurchaseForm:React.FC<PurchaseFormProps> = ({
-  initialData, suppliers, prodCategories, po
+  initialData, suppliers, products, po
 }) => {
+  //initialData
   const router = useRouter();
-  const [boxes, setBoxes] = useState(false);
-  const [qtn, setQtn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState<string>("");
-  const [isDone, setIsDone] = useState(false);
-  const [isDelivered, setIsDelivered] = useState(false); 
-  const {data, setData, clearData} = useFormState();
+
+  const [qtn, setQtn] = useState(initialData?.qtnNo? true:false);
+  const [boxes, setBoxes] = useState(initialData?.boxes?true:false);
+  const [isDone, setIsDone] = useState(initialData?.payment?true:false);
+  const [isDelivered, setIsDelivered] = useState(initialData?.delivery? true:false); 
+  const [unit, setUnit] = useState<string[]>([]);
+  const [sum, setSum] = useState<number>();
+  const [sgst, setSgst] = useState<number>();
+  const [cgst, setCgst] = useState<number>();
+  const [igst, setIgst] = useState<number>();
+
+  const updateUnit = (index: number, newValue: string) => {
+    setUnit(prevUnit => {
+      const updatedUnit = [...prevUnit];
+      updatedUnit[index] = newValue;
+      return updatedUnit;
+    });
+  };
   
   const handleCheckboxChange = (name:string) => {
-    if(name === "boxes"){
-      if(boxes)setBoxes(false);
-      else setBoxes(true);
-    }
     if(name === "qtn"){
       if(qtn)setQtn(false);
-      else setQtn(true)
-    }
+      else setQtn(true);
+    };
+    if(name === "boxes"){
+      if(boxes){setBoxes(false);}
+      else {setBoxes(true)};
+    };
+    if(name === "payment"){
+      if(isDone)setIsDone(false);
+      else setIsDone(true);
+    };
+    if(name === "delivery"){
+      if(isDelivered)setIsDelivered(false);
+      else setIsDelivered(true);
+    };
   };
+
   const resetValues = {
     code: "",
     suppliers: [],
@@ -86,41 +109,112 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     quantity: 0,
   };
 
-  const transformData = (data: any) => {
-    if (!data) {
-      return resetValues;
-    }
-    return {
-      code: data.code ?? "",
-      suppliers: data.suppliers?.map((supplierItem: any) => supplierItem?.supplier?.name) || [],
-      productCategory: data.productCategoryId ?? "",
-      valueUnit: data.valueUnit ?? "",
-      quantity: data.quantity ?? 0,
-    };
-  };
+  // const transformData = (data: any) => {
+  //   if (!data) {
+  //     return resetValues;
+  //   }
+  //   return {
+  //     code: data.code ?? "",
+  //     suppliers: data.suppliers?.map((supplierItem: any) => supplierItem?.supplier?.name) || [],
+  //     productCategory: data.productCategoryId ?? "",
+  //     valueUnit: data.valueUnit ?? "",
+  //     quantity: data.quantity ?? 0,
+  //   };
+  // };
   
   const defaultValues = initialData ? {
     ...initialData
-  } : transformData(data) 
+  } : resetValues
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "products",
+  });
+
   const createSupplier = () => {
-    setData(form.getValues);
     toast.success("called")
     router.push('/inventory/supplier/new');
     // route to list to edit or create new
   }
   
+
+  function convertToNumber(input: number | undefined): number | null {
+    if(input){
+
+      const trimmedInput = input.toString().trim();
+      if (trimmedInput === '.' || trimmedInput === '') {
+        return null;
+      }
+      const normalizedInput = trimmedInput.startsWith('.') ? '0' + trimmedInput : trimmedInput;
+      const parsedNumber = parseFloat(normalizedInput);
+      return isNaN(parsedNumber) ? null : parsedNumber;
+    }
+    else return null
+  }
+
+  function handleGst() {
+    if(sum) {
+      const baseValue = sum || 0;
+      const Cgst = form.getValues('cgst');
+      const Sgst = form.getValues('sgst');
+      const Igst = form.getValues('igst');
+      if (Cgst && !isNaN(Cgst)) {
+        setCgst((baseValue * Cgst / 100));
+      }        
+      if (Sgst && !isNaN(Sgst)) {
+        setSgst((baseValue * Sgst / 100));
+      }        
+      if (Igst && !isNaN(Igst)) {
+        setIgst((baseValue * Igst / 100));
+      }
+      form.setValue(`totalPrice`, baseValue + (cgst || 0) + (sgst || 0) + (igst || 0));
+    }
+  }
+
+  const handleAmount = ()=> {
+    const prod = form.getValues('products');
+    const totalAmount = prod.reduce((total, product) => total + (product.amount || 0), 0);
+    setSum(totalAmount);
+    handleGst();
+  }
+
+  const handleQuantity= (index:number) => {
+      const qty = form.getValues(`products.${index}.quantity`);
+      const unitRate = convertToNumber(form.getValues(`products.${index}.unitRate`));
+      if (qty && unitRate) {
+        form.setValue(`products.${index}.amount`, unitRate * qty);
+        handleAmount();
+      }
+  };
+
+  const handleBoxes= (index:number) => {
+    const qtybox = form.getValues(`products.${index}.qtybox`);
+    const qtyperBoxes = form.getValues(`products.${index}.qtyPerBoxes`);
+    if (qtybox && qtyperBoxes) {
+      form.setValue(`products.${index}.quantity`, qtyperBoxes * qtybox);
+      handleQuantity(index);
+    }
+  };
+
+  
   const onSubmit = async(data: z.infer<typeof formSchema>) => {
+    if(!form.getValues('boxes')){
+      const currentProducts = form.getValues('products');
+      currentProducts.forEach((product, index) => {
+        form.setValue(`products.${index}.qtybox`, undefined);
+        form.setValue(`products.${index}.qtyPerBoxes`, undefined);
+      });
+    };
     toast(
-<>
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white" lang="JSON">{JSON.stringify(data, null, 2)}</code>
-        </pre>
+        <>
+          <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+            <code className="text-white" lang="JSON">{JSON.stringify(data, null, 2)}</code>
+          </pre>
         </>
     );
     // try {
@@ -161,15 +255,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     }
   };
 
-  useEffect(()=>{
-    const delivery = form.watch("delivery");
-    if(delivery) form.resetField("deliveryDays");
-    setIsDelivered(delivery);
-    const payment = form.watch("payment");
-    if(payment) form.resetField("paymentDays");
-    setIsDone(payment)
 
-  },[form.watch("delivery"),form.watch("payment")])
   return (
     <>
       <AlertModal 
@@ -179,12 +265,12 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
       loading={loading}
       />
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 w-full md:max-w-2xl mx-auto mt-11 bg-white border rounded-xl shadow-md ">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 w-full md:max-w-[85%] mx-auto mt-11 bg-white border rounded-xl shadow-md ">
           <div className="bg-[#fffece] h-2 rounded-t-xl mx-[0.105rem]"></div>
           <div className="p-6 space-y-7">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Product</h1>
+                <h1 className="text-3xl font-bold">Purchase Order</h1>
                 <p className="text-muted-foreground pt-1">{initialData? "Update product data here.":"Add new product here"}</p>
               </div>
               {initialData && (
@@ -352,18 +438,193 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
             />
           </div>
           }
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><h4>S.No.</h4></div>
-            <div className="space-y-2"><h4>Product Code</h4></div>
-            <div className="space-y-2"><h4>Description</h4></div>
-            {qtn && <><div className="space-y-2"><h4>No of Boxes</h4></div>
-            <div className="space-y-2"><h4>Qty. Per Boxes</h4></div></>}
-            <div className="space-y-2"><h4>Qty.</h4></div>
+          <div className="h-3"></div>
+          <div className={cn( boxes? "grid-cols-12":"grid-cols-10", "grid gap-4")}>
+            <div className="space-y-2 col-span-1"><h4>S.No.</h4></div>
+            <div className="space-y-2 col-span-2"><h4>Product Code</h4></div>
+            <div className="space-y-2 col-span-3"><h4>Description</h4></div>
+            {boxes && <><div className="space-y-2"><h4>No of Boxes</h4></div>
+            <div className="space-y-2"><h4>Qty. per Box</h4></div></>}
+            <div className="space-y-2"><h4>Total Qty.</h4></div>
             <div className="space-y-2"><h4>Unit</h4></div>            
-            <div className="space-y-2"><h4>Unit Rate</h4><span className="font-semibold text-popover-foreground">&#40;Rs&#93;</span></div>
+            <div className="space-y-2"><h4>Unit Rate</h4><span className="font-semibold text-popover-foreground">&#40;Rs&#41;</span></div>
             <div className="space-y-2"><h4>Amount</h4></div>
-
           </div>
+          {fields.map((item, index) => (
+            <div key={'hello'+index} className={cn( boxes? "grid-cols-12":"grid-cols-10", "grid  gap-4")}>
+              <div className="flex items-center justify-center border border-input rounded-lg">
+                <p className="ml-2 mt-[0.15rem]">{index + 1}</p>
+                <Button className="rounded-xl ml-2 relative" type="button" size={"sm"} variant={"ghost"} onClick={() => remove(index)}><Trash className="opacity-60 h-4 w-4" /></Button>
+              </div>
+              <FormField
+                control={form.control}
+                name={`products.${index}.productId`}
+                render={({ field }) => (
+                  <FormItem className="flex flex-col space-y-2 col-span-2">
+                    <Popover>
+                      <div className="">
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                " justify-between w-full",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled={loading}
+                            >
+                            {field.value
+                              ? products.find(
+                                  (language) => language.code === field.value
+                                )?.code
+                              : "Select product"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className=" p-0">
+                          <Command>
+                            <CommandInput className="h-[2.4rem]" placeholder="Search product..." value={inputValue} onValueChange={setInputValue}/>
+                            <CommandEmpty>No product found.</CommandEmpty>
+                            <CommandList>
+                              <CommandGroup>
+                                {products.map((language) => (
+                                  <CommandItem
+                                    value={language.code}
+                                    key={language.code}
+                                    onSelect={() => { form.setValue(`products.${index}.productId`, language.code); form.setValue(`products.${index}.description`, language.name); updateUnit(index, language.valueUnit) }}
+                                    disabled={loading}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                          field.value === language.code
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {language.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                              <CommandSeparator alwaysRender/>
+                              <CommandGroup>
+                                <CommandItem onClick={()=>{createSupplier()}}>
+                                  {"Create or edit product"}
+                                </CommandItem>
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </div>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`products.${index}.description`}
+                render={({ field }) => (
+                  <FormItem className="space-y-2 col-span-3">
+                    <FormControl>
+                      <Input placeholder="Description" disabled={loading || !!initialData} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {boxes && <>
+              <FormField
+                control={form.control}
+                name={`products.${index}.qtyPerBoxes`}
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="Quantity Per Boxes" type="number" disabled={loading || !!initialData} {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleBoxes(index);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`products.${index}.qtybox`}
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="Number of boxes" type="number" disabled={loading || !!initialData} {...field}
+                      onChange={(e) => {
+                          field.onChange(e);
+                          handleBoxes(index);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              </>}
+              <FormField
+                control={form.control}
+                name={`products.${index}.quantity`}
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="Total Quantity" type="number" disabled={loading || !!initialData} {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleQuantity(index);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="border border-input rounded-lg flex items-center justify-center text-sm p-2">
+                <p>{unit[index]}</p>
+              </div>
+              <FormField
+                control={form.control}
+                name={`products.${index}.unitRate`}
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="Unit Rate" type="number" disabled={loading || !!initialData} {...field}                 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleQuantity(index);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`products.${index}.amount`}
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="Total amount" type="number" disabled={loading || !!initialData} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          ))}
+          <Button className="rounded-2xl" variant={"secondary"} type="button" onClick={() => append({productId:"", description:"",amount:0  })}>
+            <Plus className="h-5 w-5 mr-2" />Add Line
+          </Button>
           <FormField
             control={form.control}
             name="boxes"
@@ -372,7 +633,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 <FormControl>
                   <Checkbox
                     checked={field.value}
-                    onCheckedChange={field.onChange}
+                    onCheckedChange={()=>{field.onChange; handleCheckboxChange("boxes")}}
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
@@ -383,59 +644,80 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="cgst"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel>CGST<span className="text-red-600">*</span></FormLabel>
-                <FormControl>
-                  <Input placeholder="% or Rs" disabled={loading || !!initialData} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="sgst"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel>SGST<span className="text-red-600">*</span></FormLabel>
-                <FormControl>
-                  <Input placeholder="% or Rs" disabled={loading || !!initialData} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="igst"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel>IGST<span className="text-red-600">*</span></FormLabel>
-                <FormControl>
-                  <Input placeholder="% or Rs" disabled={loading || !!initialData} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="totalPrice"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel>Total Amount<span className="text-red-600">*</span></FormLabel>
-                <FormControl>
-                  <Input placeholder="% or Rs" disabled={loading || !!initialData} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
+          <div className="grid grid-cols-2 gap-4">
+            <p className="col-span-2">{sum}</p>
+            <FormField
+              control={form.control}
+              name="cgst"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel>CGST<span className="text-red-600">*</span></FormLabel>
+                  <FormControl>
+                    <Input placeholder="%" disabled={loading || !!initialData} {...field} 
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleGst();
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <p className="col-span-2">{cgst}</p>
+            <FormField
+              control={form.control}
+              name="sgst"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel>SGST<span className="text-red-600">*</span></FormLabel>
+                  <FormControl>
+                    <Input placeholder="%" disabled={loading || !!initialData} {...field} 
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleGst();
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <p className="col-span-2">{sgst}</p>
+            <FormField
+              control={form.control}
+              name="igst"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel>IGST<span className="text-red-600">*</span></FormLabel>
+                  <FormControl>
+                    <Input placeholder="%" disabled={loading || !!initialData} {...field} 
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleGst();
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <p className="col-span-2">{igst}</p>
+            <FormField
+              control={form.control}
+              name="totalPrice"
+              render={({ field }) => (
+                <FormItem className="space-y-2 col-span-2">
+                  <FormLabel>Total Amount<span className="text-red-600">*</span></FormLabel>
+                  <FormControl>
+                    <Input placeholder="Total" disabled={loading || !!initialData} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <Separator/>
           <div className="w-full flex items-center justify-center">
             <h1 className="text-3xl font-bold">Terms and Conditions</h1>
@@ -452,7 +734,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                       <Checkbox
                         className="size-5 rounded-lg"
                         checked={field.value}
-                        onCheckedChange={field.onChange}
+                        onCheckedChange={()=>{field.onChange; handleCheckboxChange("payment")}}
                         />  
                     </FormControl>
                     <FormLabel className="text-lg">Payment</FormLabel>
@@ -488,7 +770,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                       <Checkbox
                         className="size-5 rounded-lg"
                         checked={field.value}
-                        onCheckedChange={field.onChange}
+                        onCheckedChange={()=>{field.onChange; handleCheckboxChange("delivery")}}
                         />
                     </FormControl>
                     <FormLabel className="text-lg">Delivery</FormLabel>

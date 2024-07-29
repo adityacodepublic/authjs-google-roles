@@ -127,7 +127,7 @@ export const MultiSelect = forwardRef<
       asChild = false,
       className,
       multiselect = false,
-      multiselectlimit,
+      multiselectlimit = 1,
       addNewFields = true,
       editableFields = true,
       loading,
@@ -270,7 +270,7 @@ export const MultiSelect = forwardRef<
             />
             <CommandList>
               <CommandGroup className="max-h-[145px] overflow-auto">
-                {multiselectlimit && selectedValues.length>=multiselectlimit && <CommandItem> <div>Only {multiselectlimit} groups allowed</div></CommandItem>}
+                {multiselectlimit && selectedValues.length>=multiselectlimit && <CommandItem> <div className="ml-2 text-muted-foreground">Only {multiselectlimit} groups allowed</div></CommandItem>}
                 {frameworks.map((framework) => {
                   const isActive = selectedValues.some((f) => f.id === framework.id);
                   return (

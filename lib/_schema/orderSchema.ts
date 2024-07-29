@@ -10,4 +10,5 @@ export const formSchema = z.object({
   wireLength: z.string().min(1, { message: "Wire Length is required." }),
   wireType: z.string().min(1, { message: "Wire Type is required." }),
   quantity: z.coerce.number().int().min(1, { message: "Quantity is required." }),
+  user: z.string().min(1, { message: "User is required." }), 
 });
