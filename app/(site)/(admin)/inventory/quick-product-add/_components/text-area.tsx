@@ -126,7 +126,7 @@ export const TextareaForm:React.FC<TextareaProps> = ({
                   />
                 </FormControl>
                 <FormDescription>
-                  Paste data from Excel. Each row should be separated by a new line and columns by tabs(space).
+                  Paste data from Excel. Data should be in ["name" "product Id" "unit"] format. Each row should be separated by a new line and columns by tabs(space).
                 </FormDescription>
                 <FormMessage />
               </FormItem>

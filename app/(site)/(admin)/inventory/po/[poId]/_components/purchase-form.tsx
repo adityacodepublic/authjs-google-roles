@@ -39,10 +39,9 @@ import { Separator } from "@/components/ui/separator";
 import { Product, Supplier } from "@prisma/client";
 import { deleteProduct, submitProduct, updateProduct } from "@/actions/product-form-action";
 import { formSchema }  from "@/lib/_schema/inventory/purchaseSchema"
-import useFormState from "@/hooks/use-form-state";
-import { MultiSelect } from "@/components/multiselect";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
+import { useCurrentId } from "@/hooks/use-current-id";
 
 type supplierData = {
   id: string;
@@ -60,6 +59,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
 }) => {
   //initialData
   const router = useRouter();
+  const user = useCurrentId();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState<string>("");
@@ -69,10 +69,10 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
   const [isDone, setIsDone] = useState(initialData?.payment?true:false);
   const [isDelivered, setIsDelivered] = useState(initialData?.delivery? true:false); 
   const [unit, setUnit] = useState<string[]>([]);
-  const [sum, setSum] = useState<number>();
-  const [sgst, setSgst] = useState<number>();
-  const [cgst, setCgst] = useState<number>();
-  const [igst, setIgst] = useState<number>();
+  const [sum, setSum] = useState<number>(0);
+  const [sgst, setSgst] = useState<number>(0);
+  const [cgst, setCgst] = useState<number>(0);
+  const [igst, setIgst] = useState<number>(0);
 
   const updateUnit = (index: number, newValue: string) => {
     setUnit(prevUnit => {
@@ -84,43 +84,36 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
   
   const handleCheckboxChange = (name:string) => {
     if(name === "qtn"){
-      if(qtn)setQtn(false);
-      else setQtn(true);
+      if(qtn){setQtn(false); form.setValue('qtn',false)}
+      else {setQtn(true); form.setValue('qtn',true)}
     };
     if(name === "boxes"){
-      if(boxes){setBoxes(false);}
-      else {setBoxes(true)};
+      if(boxes){setBoxes(false); form.setValue('boxes',false)}
+      else {setBoxes(true); form.setValue('boxes',true) };
     };
     if(name === "payment"){
-      if(isDone)setIsDone(false);
-      else setIsDone(true);
+      if(isDone){setIsDone(false); form.setValue('payment',false)}
+      else {setIsDone(true); form.setValue('payment',true)}
     };
     if(name === "delivery"){
-      if(isDelivered)setIsDelivered(false);
-      else setIsDelivered(true);
+      if(isDelivered){setIsDelivered(false); form.setValue('delivery',false)}
+      else {setIsDelivered(true); form.setValue('delivery',true)}
     };
   };
 
   const resetValues = {
     code: "",
-    suppliers: [],
-    productCategory: "",
-    valueUnit:"",
-    quantity: 0,
+    supplierId: "",
+    products:[{productId:"", description:"", quantity:0  }],
+    totalPrice:0,
+    payment:false,
+    delivery:false,
+    qtn:false,
+    boxes:false,
+    transporterSelf:false,
+    igst:0,
+    po:true,
   };
-
-  // const transformData = (data: any) => {
-  //   if (!data) {
-  //     return resetValues;
-  //   }
-  //   return {
-  //     code: data.code ?? "",
-  //     suppliers: data.suppliers?.map((supplierItem: any) => supplierItem?.supplier?.name) || [],
-  //     productCategory: data.productCategoryId ?? "",
-  //     valueUnit: data.valueUnit ?? "",
-  //     quantity: data.quantity ?? 0,
-  //   };
-  // };
   
   const defaultValues = initialData ? {
     ...initialData
@@ -128,7 +121,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues
+    defaultValues,
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -143,37 +136,32 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
   }
   
 
-  function convertToNumber(input: number | undefined): number | null {
+  function convertToNumber(input: string | number | undefined ): number | undefined {
     if(input){
-
       const trimmedInput = input.toString().trim();
       if (trimmedInput === '.' || trimmedInput === '') {
-        return null;
+        return undefined;
       }
       const normalizedInput = trimmedInput.startsWith('.') ? '0' + trimmedInput : trimmedInput;
       const parsedNumber = parseFloat(normalizedInput);
-      return isNaN(parsedNumber) ? null : parsedNumber;
+      return isNaN(parsedNumber) ? undefined : parsedNumber;
     }
-    else return null
+    else return undefined
   }
 
   function handleGst() {
-    if(sum) {
-      const baseValue = sum || 0;
-      const Cgst = form.getValues('cgst');
-      const Sgst = form.getValues('sgst');
-      const Igst = form.getValues('igst');
-      if (Cgst && !isNaN(Cgst)) {
-        setCgst((baseValue * Cgst / 100));
-      }        
-      if (Sgst && !isNaN(Sgst)) {
-        setSgst((baseValue * Sgst / 100));
-      }        
-      if (Igst && !isNaN(Igst)) {
-        setIgst((baseValue * Igst / 100));
-      }
-      form.setValue(`totalPrice`, baseValue + (cgst || 0) + (sgst || 0) + (igst || 0));
-    }
+    const Cgst = form.getValues('cgst');
+    const Sgst = form.getValues('sgst');
+    const Igst = form.getValues('igst');
+    if (Cgst && !isNaN(Cgst)) {
+      setCgst((sum * Cgst / 100));
+    }        
+    if (Sgst && !isNaN(Sgst)) {
+      setSgst((sum * Sgst / 100));
+    }        
+    if (Igst && !isNaN(Igst)) {
+      setIgst((sum * Igst / 100));
+    }  
   }
 
   const handleAmount = ()=> {
@@ -182,14 +170,20 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     setSum(totalAmount);
     handleGst();
   }
+  // cannot do operations right after state changes 
+  useEffect(() => {
+    form.setValue(`totalPrice`, sum + (cgst + sgst + igst));
+  }, [sum,cgst,igst,sgst]);
+
 
   const handleQuantity= (index:number) => {
-      const qty = form.getValues(`products.${index}.quantity`);
-      const unitRate = convertToNumber(form.getValues(`products.${index}.unitRate`));
-      if (qty && unitRate) {
-        form.setValue(`products.${index}.amount`, unitRate * qty);
-        handleAmount();
-      }
+    const qty = form.getValues(`products.${index}.quantity`);
+    const unitRate = convertToNumber(form.getValues(`products.${index}.unitRate`));
+    if (qty && unitRate) {
+      form.setValue(`products.${index}.unitRate`, unitRate);
+      form.setValue(`products.${index}.amount`, unitRate * qty);
+      handleAmount();
+    }
   };
 
   const handleBoxes= (index:number) => {
@@ -201,7 +195,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     }
   };
 
-  
+  // box false clear
   const onSubmit = async(data: z.infer<typeof formSchema>) => {
     if(!form.getValues('boxes')){
       const currentProducts = form.getValues('products');
@@ -212,7 +206,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     };
     toast(
         <>
-          <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+          <pre className="mt-2 rounded-md bg-slate-950 p-4">
             <code className="text-white" lang="JSON">{JSON.stringify(data, null, 2)}</code>
           </pre>
         </>
@@ -255,6 +249,9 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     }
   };
 
+  useEffect(()=>{
+    form.setValue('user', user || "");
+  })
 
   return (
     <>
@@ -378,13 +375,26 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
             />
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="qtn" checked={qtn} onCheckedChange={()=>{handleCheckboxChange("qtn")}}/>
-            <label
-              htmlFor="qtn"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Quotation
-            </label>
+          <FormField
+            control={form.control}
+            name="qtn"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={()=>{field.onChange; handleCheckboxChange("qtn")}}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Quotation
+                  </FormLabel>
+                  <FormMessage/>
+                </div>
+              </FormItem>
+            )}
+          />
           </div>
           { qtn &&  <div className="animate-ease-in grid grid-cols-2 gap-4">
             <FormField
@@ -452,7 +462,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
           </div>
           {fields.map((item, index) => (
             <div key={'hello'+index} className={cn( boxes? "grid-cols-12":"grid-cols-10", "grid  gap-4")}>
-              <div className="flex items-center justify-center border border-input rounded-lg">
+              <div className="flex items-center justify-center border border-input rounded-lg h-10">
                 <p className="ml-2 mt-[0.15rem]">{index + 1}</p>
                 <Button className="rounded-xl ml-2 relative" type="button" size={"sm"} variant={"ghost"} onClick={() => remove(index)}><Trash className="opacity-60 h-4 w-4" /></Button>
               </div>
@@ -491,7 +501,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                               <CommandGroup>
                                 {products.map((language) => (
                                   <CommandItem
-                                    value={language.code}
+                                    value={language.code + language.name}
                                     key={language.code}
                                     onSelect={() => { form.setValue(`products.${index}.productId`, language.code); form.setValue(`products.${index}.description`, language.name); updateUnit(index, language.valueUnit) }}
                                     disabled={loading}
@@ -588,7 +598,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                   </FormItem>
                 )}
               />
-              <div className="border border-input rounded-lg flex items-center justify-center text-sm p-2">
+              <div className="border border-input rounded-lg flex items-center justify-center text-sm p-2 h-10">
                 <p>{unit[index]}</p>
               </div>
               <FormField
@@ -622,7 +632,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
               />
             </div>
           ))}
-          <Button className="rounded-2xl" variant={"secondary"} type="button" onClick={() => append({productId:"", description:"",amount:0  })}>
+          <Button className="rounded-2xl" variant={"secondary"} type="button" onClick={() => append({productId:"", description:"",amount:'', quantity:'', unitRate:''})}>
             <Plus className="h-5 w-5 mr-2" />Add Line
           </Button>
           <FormField
@@ -640,11 +650,12 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                   <FormLabel>
                     Boxes
                   </FormLabel>
+                  <FormMessage/>
                 </div>
               </FormItem>
             )}
           />
-
+          {/*////*/}
           <div className="grid grid-cols-2 gap-4">
             <p className="col-span-2">{sum}</p>
             <FormField
@@ -734,7 +745,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                       <Checkbox
                         className="size-5 rounded-lg"
                         checked={field.value}
-                        onCheckedChange={()=>{field.onChange; handleCheckboxChange("payment")}}
+                        onCheckedChange={()=>{field.onChange; handleCheckboxChange("payment"); form.trigger('payment')}}
                         />  
                     </FormControl>
                     <FormLabel className="text-lg">Payment</FormLabel>
@@ -770,7 +781,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                       <Checkbox
                         className="size-5 rounded-lg"
                         checked={field.value}
-                        onCheckedChange={()=>{field.onChange; handleCheckboxChange("delivery")}}
+                        onCheckedChange={()=>{field.onChange; handleCheckboxChange("delivery"); form.trigger('delivery')}}
                         />
                     </FormControl>
                     <FormLabel className="text-lg">Delivery</FormLabel>
@@ -784,12 +795,14 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 control={form.control}
                 name="deliveryDays"
                 render={({ field }) => (
-                  <FormItem className="animate-ease-in">
-                    <FormLabel>Pending Days</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="days pending for delivery" {...field} />
-                    </FormControl>
-                    <FormMessage />
+                  <FormItem className="animate-ease-in flex  items-center">
+                    <div className="flex-col space-y-2">
+                      <FormLabel>Pending Days</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="days pending for delivery" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
