@@ -38,10 +38,13 @@ import { CalendarIcon, Check, ChevronsUpDown, Plus, Trash } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Product, Supplier } from "@prisma/client";
 import { deleteProduct, submitProduct, updateProduct } from "@/actions/product-form-action";
-import { formSchema }  from "@/lib/_schema/inventory/purchaseSchema"
+import { formSchema, InStockSchema }  from "@/lib/_schema/inventory/purchaseSchema"
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { useCurrentId } from "@/hooks/use-current-id";
+import axios from "axios";
+import { submitPO, updatePO } from "@/actions/po-actions";
+import { transformPoData } from "@/lib/po-data-transform";
 
 type supplierData = {
   id: string;
@@ -52,12 +55,10 @@ interface PurchaseFormProps {
   initialData: z.infer<typeof formSchema> | null,
   suppliers:supplierData[],
   products : Product[]
-  po:boolean;
 }
 export const PurchaseForm:React.FC<PurchaseFormProps> = ({
-  initialData, suppliers, products, po
+  initialData, suppliers, products
 }) => {
-  //initialData
   const router = useRouter();
   const user = useCurrentId();
   const [loading, setLoading] = useState(false);
@@ -68,11 +69,27 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
   const [boxes, setBoxes] = useState(initialData?.boxes?true:false);
   const [isDone, setIsDone] = useState(initialData?.payment?true:false);
   const [isDelivered, setIsDelivered] = useState(initialData?.delivery? true:false); 
-  const [unit, setUnit] = useState<string[]>([]);
   const [sum, setSum] = useState<number>(0);
-  const [sgst, setSgst] = useState<number>(0);
-  const [cgst, setCgst] = useState<number>(0);
-  const [igst, setIgst] = useState<number>(0);
+  const [sgst, setSgst] = useState<number>(initialData? initialData.sgst : 0);
+  const [cgst, setCgst] = useState<number>(initialData? initialData.cgst : 0);
+  const [igst, setIgst] = useState<number>(initialData? initialData.igst : 0);
+  const [unit, setUnit] = useState<string[]>(initialData? getUnits(initialData.products, products):[]);
+
+  type p = {
+    productId: string;
+    description: string;
+    quantity: number | "";
+    amount: number | "";
+    unitRate: number | "";
+    qtybox?: number | undefined;
+    qtyPerBoxes?: number | undefined;
+  }[];
+  function getUnits(p: p, products: Product[]): string[] {
+    return p.map(pItem => {
+      const matchingProduct = products.find(product => product.code === pItem.productId);
+      return matchingProduct ? matchingProduct.valueUnit : null;
+    }).filter(valueUnit => valueUnit !== null) as string[];
+  };
 
   const updateUnit = (index: number, newValue: string) => {
     setUnit(prevUnit => {
@@ -88,8 +105,18 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
       else {setQtn(true); form.setValue('qtn',true)}
     };
     if(name === "boxes"){
-      if(boxes){setBoxes(false); form.setValue('boxes',false)}
-      else {setBoxes(true); form.setValue('boxes',true) };
+      if(boxes){
+        setBoxes(false); 
+        form.setValue('boxes',false);
+        const currentProducts = form.getValues('products');
+        currentProducts.forEach((product, index) => {
+          form.setValue(`products.${index}.qtybox`, undefined);
+          form.setValue(`products.${index}.qtyPerBoxes`, undefined);
+        });  
+      } 
+      else {
+        setBoxes(true); form.setValue('boxes',true) 
+      };
     };
     if(name === "payment"){
       if(isDone){setIsDone(false); form.setValue('payment',false)}
@@ -102,17 +129,22 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
   };
 
   const resetValues = {
-    code: "",
+    id: "",
     supplierId: "",
-    products:[{productId:"", description:"", quantity:0  }],
-    totalPrice:0,
+    products:[{productId:"", description:"", quantity:undefined , amount:undefined, unitRate:undefined, qtybox:undefined, qtyPerBoxes:undefined  }],
+    totalPrice:undefined,
     payment:false,
+    paymentDays:undefined,
     delivery:false,
-    qtn:false,
-    boxes:false,
-    transporterSelf:false,
-    igst:0,
+    deliveryDays:undefined,
     po:true,
+    qtn:qtn,
+    boxes:boxes,
+    sgst:undefined,
+    cgst:undefined,
+    igst:0,
+    transporter:"",
+    transporterSelf:false,
   };
   
   const defaultValues = initialData ? {
@@ -133,8 +165,8 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     toast.success("called")
     router.push('/inventory/supplier/new');
     // route to list to edit or create new
-  }
-  
+  };
+
 
   function convertToNumber(input: string | number | undefined ): number | undefined {
     if(input){
@@ -147,7 +179,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
       return isNaN(parsedNumber) ? undefined : parsedNumber;
     }
     else return undefined
-  }
+  };
 
   function handleGst() {
     const Cgst = form.getValues('cgst');
@@ -162,19 +194,28 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     if (Igst && !isNaN(Igst)) {
       setIgst((sum * Igst / 100));
     }  
-  }
+  };
 
-  const handleAmount = ()=> {
+  const handleSum = () => {
     const prod = form.getValues('products');
     const totalAmount = prod.reduce((total, product) => total + (product.amount || 0), 0);
     setSum(totalAmount);
     handleGst();
-  }
+  };
   // cannot do operations right after state changes 
   useEffect(() => {
     form.setValue(`totalPrice`, sum + (cgst + sgst + igst));
+    handleSum();
   }, [sum,cgst,igst,sgst]);
 
+  const handleAmount = (index:number) => {
+    const qty = form.getValues(`products.${index}.quantity`);
+    const amount = form.getValues(`products.${index}.amount`);
+    if(qty != "" && amount != ""){
+      form.setValue(`products.${index}.unitRate`, parseFloat((amount/qty).toFixed(2)));
+      handleQuantity(index);
+    };
+  };
 
   const handleQuantity= (index:number) => {
     const qty = form.getValues(`products.${index}.quantity`);
@@ -182,7 +223,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     if (qty && unitRate) {
       form.setValue(`products.${index}.unitRate`, unitRate);
       form.setValue(`products.${index}.amount`, unitRate * qty);
-      handleAmount();
+      handleSum();
     }
   };
 
@@ -195,48 +236,53 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     }
   };
 
-  // box false clear
-  const onSubmit = async(data: z.infer<typeof formSchema>) => {
-    if(!form.getValues('boxes')){
-      const currentProducts = form.getValues('products');
-      currentProducts.forEach((product, index) => {
-        form.setValue(`products.${index}.qtybox`, undefined);
-        form.setValue(`products.${index}.qtyPerBoxes`, undefined);
+  const onDownload = async() => {
+    try {
+      const prodData = form.getValues('products')
+      const response = await axios.post('/api/edit-excel', { rowIndex:36, products:prodData }, {
+        responseType: 'blob',
       });
-    };
-    toast(
-        <>
-          <pre className="mt-2 rounded-md bg-slate-950 p-4">
-            <code className="text-white" lang="JSON">{JSON.stringify(data, null, 2)}</code>
-          </pre>
-        </>
-    );
-    // try {
-    //   setLoading(true);
-    //   let response;
-    //   if(initialData) response = await updateProduct(data,initialData.code)
-    //   else response = await submitProduct(data);
-    //   console.log(response);
-    //   if (response.status === 200) {
-    //     toast.success(initialData? "Product Updated" : "Product Created");
-    //     router.refresh();
-    //     clearData();
-    //     router.push(`/orders`);
-    //   } else if(response.status === 400) {
-    //     toast.error(response.message);
-    //   }
-    // } catch (error: any) {
-    //   toast.error('Something went wrong.');
-    // } finally {
-    //   setLoading(false);
-    // }
+      const blob = await response.data;
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'updated_purchase_order.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Error updating Excel file:', error);
+    }
+  };
+  
+
+  const onSubmit = async(data: z.infer<typeof formSchema>) => {   
+    try {
+      setLoading(true);
+      let response;
+      if(initialData) response = await updatePO(transformPoData(data));
+      else response = await submitPO(transformPoData(data));
+      console.log(response);
+      if (response.status === 200) {
+        toast.success(initialData? "Purchase Order Updated" : "Purchase Order Created");
+        router.refresh();
+        //router.back();
+      } else if(response.status === 400 || response.status === 401) {
+        toast.error(response?.message || "Something went wrong");
+      }
+    } catch (error: any) {
+      toast.error('Something went wrong.');
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onDelete = async () => {
     try {
       setLoading(true);
-      if(initialData?.code){
-        const user_delete = await deleteProduct(initialData?.code) 
+      if(initialData?.id){
+        const user_delete = await deleteProduct(initialData?.id) 
         toast.success('Product deleted.');
         router.refresh();
         router.push(`/orders`);
@@ -251,6 +297,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
 
   useEffect(()=>{
     form.setValue('user', user || "");
+    form.setValue(`products.0.index`,'1');
   })
 
   return (
@@ -290,11 +337,11 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="code"
+              name="id"
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <FormLabel>PO. No.<span className="text-red-600">*</span></FormLabel>
-                  <FormDescription>Purchase Order code eg: PO2406-27</FormDescription>
+                  <FormDescription>Purchase Order Code eg: PO2406-27</FormDescription>
                   <FormControl>
                     <Input placeholder="Your answer" disabled={loading || !!initialData} {...field} />
                   </FormControl>
@@ -306,7 +353,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
               control={form.control}
               name="supplierId"
               render={({ field }) => (
-                <FormItem className="flex flex-col space-y-2">
+                <FormItem className="flex flex-col space-y-3">
                   <FormLabel>Supplier<span className="text-red-600">*</span></FormLabel>
                   <FormDescription>
                     Select supplier.
@@ -464,7 +511,12 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
             <div key={'hello'+index} className={cn( boxes? "grid-cols-12":"grid-cols-10", "grid  gap-4")}>
               <div className="flex items-center justify-center border border-input rounded-lg h-10">
                 <p className="ml-2 mt-[0.15rem]">{index + 1}</p>
-                <Button className="rounded-xl ml-2 relative" type="button" size={"sm"} variant={"ghost"} onClick={() => remove(index)}><Trash className="opacity-60 h-4 w-4" /></Button>
+                <Button className="rounded-xl ml-2 relative" type="button" size={"sm"} variant={"ghost"} 
+                  onClick={() => {
+                    remove(index);
+                  }}>
+                  <Trash className="opacity-60 h-4 w-4" />
+                </Button>
               </div>
               <FormField
                 control={form.control}
@@ -539,7 +591,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 render={({ field }) => (
                   <FormItem className="space-y-2 col-span-3">
                     <FormControl>
-                      <Input placeholder="Description" disabled={loading || !!initialData} {...field} />
+                      <Input placeholder="Description" disabled={loading} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -552,7 +604,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <FormControl>
-                      <Input placeholder="Quantity Per Boxes" type="number" disabled={loading || !!initialData} {...field} 
+                      <Input placeholder="Quantity Per Boxes" type="number" disabled={loading} {...field} 
                         onChange={(e) => {
                           field.onChange(e);
                           handleBoxes(index);
@@ -569,7 +621,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <FormControl>
-                      <Input placeholder="Number of boxes" type="number" disabled={loading || !!initialData} {...field}
+                      <Input placeholder="Number of boxes" type="number" disabled={loading} {...field}
                       onChange={(e) => {
                           field.onChange(e);
                           handleBoxes(index);
@@ -587,7 +639,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <FormControl>
-                      <Input placeholder="Total Quantity" type="number" disabled={loading || !!initialData} {...field} 
+                      <Input placeholder="Total Quantity" type="number" disabled={loading} {...field} 
                         onChange={(e) => {
                           field.onChange(e);
                           handleQuantity(index);
@@ -607,7 +659,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <FormControl>
-                      <Input placeholder="Unit Rate" type="number" disabled={loading || !!initialData} {...field}                 
+                      <Input placeholder="Unit Rate" type="number" disabled={loading} {...field}                 
                         onChange={(e) => {
                           field.onChange(e);
                           handleQuantity(index);
@@ -624,7 +676,12 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <FormControl>
-                      <Input placeholder="Total amount" type="number" disabled={loading || !!initialData} {...field} />
+                      <Input placeholder="Total amount" type="number" disabled={loading} {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleAmount(index);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -632,7 +689,11 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
               />
             </div>
           ))}
-          <Button className="rounded-2xl" variant={"secondary"} type="button" onClick={() => append({productId:"", description:"",amount:'', quantity:'', unitRate:''})}>
+          <Button className="rounded-2xl" variant={"secondary"} type="button" 
+            onClick={() => {
+              append({productId:"", description:"",amount:'', quantity:'', unitRate:'', index:`${fields.length + 1}`})
+              form.setValue(`products.${fields.length}.index`, (fields.length + 1).toString());
+            }}>
             <Plus className="h-5 w-5 mr-2" />Add Line
           </Button>
           <FormField
@@ -665,7 +726,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 <FormItem className="space-y-2">
                   <FormLabel>CGST<span className="text-red-600">*</span></FormLabel>
                   <FormControl>
-                    <Input placeholder="%" disabled={loading || !!initialData} {...field} 
+                    <Input placeholder="%" disabled={loading} {...field} 
                       onChange={(e) => {
                         field.onChange(e);
                         handleGst();
@@ -684,7 +745,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 <FormItem className="space-y-2">
                   <FormLabel>SGST<span className="text-red-600">*</span></FormLabel>
                   <FormControl>
-                    <Input placeholder="%" disabled={loading || !!initialData} {...field} 
+                    <Input placeholder="%" disabled={loading} {...field} 
                       onChange={(e) => {
                         field.onChange(e);
                         handleGst();
@@ -703,7 +764,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 <FormItem className="space-y-2">
                   <FormLabel>IGST<span className="text-red-600">*</span></FormLabel>
                   <FormControl>
-                    <Input placeholder="%" disabled={loading || !!initialData} {...field} 
+                    <Input placeholder="%" disabled={loading} {...field} 
                       onChange={(e) => {
                         field.onChange(e);
                         handleGst();
@@ -722,7 +783,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
                 <FormItem className="space-y-2 col-span-2">
                   <FormLabel>Total Amount<span className="text-red-600">*</span></FormLabel>
                   <FormControl>
-                    <Input placeholder="Total" disabled={loading || !!initialData} {...field} />
+                    <Input placeholder="Total" disabled={loading} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

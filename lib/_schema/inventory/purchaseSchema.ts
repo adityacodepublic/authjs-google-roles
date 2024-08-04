@@ -1,11 +1,23 @@
 import { z } from "zod";
 
+export const extraData = z.object({
+  qtn: z.boolean(),
+  qtnNo: z.coerce.number().min(1, {message:"Quatation number must be at least one chracter"}).optional(),
+  qtnDate: z.coerce.date().optional(),
+  boxes: z.boolean(),
+  igst:  z.coerce.number().min(0, {message:"IGST must be at least one chracter"}),
+  sgst:  z.coerce.number().min(0, {message:"SGST must be at least one chracter"}),
+  cgst:  z.coerce.number().min(0, {message:"CGST must be at least one chracter"}),
+  transporter: z.string().min(5, {message: "Description must be at least 5 characters.",}),
+  transportSelf: z.boolean().default(false)
+})
 export const formSchema = z.object({
-  code: z.string().min(1, { message: "In code is required." }),
+  id: z.string().min(1, { message: "In code is required." }),
   user: z.string().min(1, { message: "User is required" }),
   supplierId: z.string().min(1, { message: "Supplier is required" }),
   products: z.array(
     z.object({
+      index: z.string().min(1),
       productId: z.string().min(2, {
         message: "Product Id must be at least 2 characters.",
       }),
@@ -28,7 +40,6 @@ export const formSchema = z.object({
   deliveryDays: z.coerce.number().min(1, {message:"Delivery pending days should be a valid number"}).optional().or(z.literal('')),
   updated: z.boolean().default(false),// in normal in 
   confirmed: z.boolean().default(false),// in confirmed click by admin
-  poData: z.string().min(5, {message: "PO data must be at least 5 characters.",}).optional(),
   po: z.boolean().default(false).optional(),
   
   qtn: z.boolean(),
@@ -40,10 +51,7 @@ export const formSchema = z.object({
   cgst:  z.coerce.number().min(0, {message:"CGST must be at least one chracter"}),
   transporter: z.string().min(5, {message: "Description must be at least 5 characters.",}),
   transportSelf: z.boolean().default(false)
-})
-
-
-.superRefine((data, ctx) => {
+}).superRefine((data, ctx) => {
   if(data.payment == false && (data.paymentDays === undefined || data.paymentDays === null || data.paymentDays === '')){
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -122,3 +130,32 @@ export const formSchema = z.object({
   });
   return true;
 });
+
+
+export const products = z.object({
+  index: z.string(),
+  productId: z.string(),
+  description: z.string(),
+  quantity: z.number().int(),
+  unitRate: z.number().int(),
+  boxes: z.string(),
+  amount: z.number().int()
+});
+
+export const InStockSchema = z.object({
+  id: z.string(),
+  user: z.string(), 
+  supplierId: z.string(),
+  products: z.array(products),
+  totalPrice: z.number(),
+  payment: z.boolean().default(true),
+  paymentDays: z.number().default(0),
+  delivery: z.boolean().default(true),
+  deliveryDays: z.number().default(0),
+  updated: z.boolean().default(false),
+  confirmed: z.boolean().default(true), 
+  po: z.boolean().default(false),
+  poData: z.string().nullable(),
+});
+
+

@@ -141,7 +141,7 @@ model Supplier {
   name     String
   contacts String[] // contacts: name-contact, email - util
   address  String
-  products InStock[] @relation("SupplierToProduct")
+  products InStock[]
 }
 
 model ProductCategory {
@@ -168,7 +168,7 @@ model InStock {
   id           String      @id @default(cuid())
   user         String // get details through cache util util
   supplierId   String
-  supplier     Supplier    @relation("SupplierToProduct", fields: [supplierId], references: [id])
+  supplier     Supplier    @relation(fields: [supplierId], references: [id])
   products     ProductIn[]
   totalPrice   Float
   payment      Boolean     @default(true)
@@ -188,14 +188,15 @@ model InStock {
 model ProductIn {
   id          String  @id @default(cuid())
   instockId   String
-  inStock     InStock @relation(fields: [instockId], references: [id])
+  inStock     InStock @relation(fields: [instockId], references: [id], onDelete: Cascade)
   productId   String
+  index       String  @db.VarChar(3)
   product     Product @relation(fields: [productId], references: [code])
   description String
   quantity    Int
-  unitRate    Int
-  boxes       String?
-  amount      Int
+  unitRate    Float
+  boxes       String  @default("")
+  amount      Float
 
   @@index([productId])
   @@index([instockId])

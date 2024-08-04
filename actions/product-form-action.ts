@@ -41,7 +41,6 @@ export const submitProduct = async (data: ProductData):Promise<{status:number, m
         }
       });
       revalidateTag("product");
-      console.log(product);
       return {status:200, message:"Product Created Successfully"};
     }
     else return {status:401, message:"Invalid request"};
@@ -100,7 +99,6 @@ export const updateProductCategory = async (id:string,name:string):Promise<{stat
     if(await getSignInStatus()){
       const product = await prismadb.productCategory.update({where:{id},data:{name}});
       revalidateTag("productCategory");
-      console.log("updated------------------------------------------");
       return {status:200};
     }
     else return {status:400};
