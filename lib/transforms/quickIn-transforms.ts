@@ -1,5 +1,5 @@
 import { InStock, ProductIn } from "@prisma/client";
-import { extraData, formSchema, InStockSchema } from "./_schema/inventory/purchaseSchema";
+import { extraData, formSchema, InStockSchema } from "../_schema/inventory/quickIn-Schema";
 import { z } from "zod";
 
 
@@ -66,6 +66,7 @@ export function getInstock(InStock: InStock & {products:ProductIn[]}):z.infer<ty
   else return null;
 };
 
+
 export const transformPoData = (data: z.infer<typeof formSchema>):z.infer<typeof InStockSchema> =>{
   const removeFields = (obj:any, fields:string[]) => {
     const newObj = {...obj};
@@ -74,7 +75,6 @@ export const transformPoData = (data: z.infer<typeof formSchema>):z.infer<typeof
   };
   const PoData = JSON.stringify(removeFields(data,["id","user","supplierId","products","totalPrice","payment","paymentDays","delivery","deliveryDays","updated","confirmed","po"]));
   const transformData = {
-    id:data.id,
     user:data.user,
     supplierId:data.supplierId,
     products: data.products.map((item) => ({

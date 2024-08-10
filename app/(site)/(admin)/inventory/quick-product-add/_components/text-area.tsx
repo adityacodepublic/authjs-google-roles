@@ -21,7 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { MultiSelect } from "@/components/multiselect";
 import { ProductCategory } from "@prisma/client";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { submitProduct } from "./quick-product-add";
+import { submitProduct } from "../../../../../../actions/quick-product-add";
 
 export const formSchema = z.object({
   productCategoryId: z.string().min(1, { message: "Please select the category of product." }),

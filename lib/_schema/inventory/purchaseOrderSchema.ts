@@ -40,7 +40,7 @@ export const formSchema = z.object({
   deliveryDays: z.coerce.number().min(1, {message:"Delivery pending days should be a valid number"}).optional().or(z.literal('')),
   updated: z.boolean().default(false),// in normal in 
   confirmed: z.boolean().default(false),// in confirmed click by admin
-  po: z.boolean().default(false).optional(),
+  po: z.boolean().default(false),
   
   qtn: z.boolean(),
   qtnNo: z.coerce.number().min(1, {message:"Quatation number must be at least one chracter"}).optional(),
@@ -141,7 +141,6 @@ export const products = z.object({
   boxes: z.string(),
   amount: z.number().int()
 });
-
 export const InStockSchema = z.object({
   id: z.string(),
   user: z.string(), 

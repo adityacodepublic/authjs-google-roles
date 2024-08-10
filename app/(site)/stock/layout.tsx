@@ -8,7 +8,7 @@ export default async function SetupLayout({
   children: React.ReactNode
 }) {
   const role = await getCurrentRole();
-  if(role?.toLowerCase() != "stock") redirect ("/orders");
+  if (role?.toLowerCase() !== "admin" && role?.toLowerCase() !== "stock") {redirect("/orders");}  
   return (
     <>
       <SessionProvider>

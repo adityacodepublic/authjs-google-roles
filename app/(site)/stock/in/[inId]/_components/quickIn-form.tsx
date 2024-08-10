@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import * as z from "zod";
 import {
@@ -33,38 +32,38 @@ import {
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 import { AlertModal } from "@/components/alert-modal";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Check, ChevronsUpDown, Plus, Trash } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Trash } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Product, Supplier } from "@prisma/client";
-import { formSchema }  from "@/lib/_schema/inventory/purchaseOrderSchema"
+import { Product } from "@prisma/client";
+import { formSchema }  from "@/lib/_schema/inventory/quickIn-Schema"
+import { formSchema as initialValues}  from "@/lib/_schema/inventory/purchaseOrderSchema"
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "@/components/ui/calendar";
 import { useCurrentId } from "@/hooks/use-current-id";
-import axios from "axios";
 import { deletePO, submitPO, updatePO } from "@/actions/po-actions";
-import { transformPoData } from "@/lib/transforms/po-data-transform";
+import { transformPoData } from "@/lib/transforms/quickIn-transforms";
 
 type supplierData = {
   id: string;
   name: string;
 };
 
-interface PurchaseFormProps {
-  initialData: z.infer<typeof formSchema> | null,
+interface QuickInProps {
+  initialData: z.infer<typeof initialValues> | null,
   suppliers:supplierData[],
   products : Product[],
 }
-export const PurchaseForm:React.FC<PurchaseFormProps> = ({
+export const QuickInForm:React.FC<QuickInProps> = ({
   initialData, suppliers, products
 }) => {
   const router = useRouter();
   const user = useCurrentId();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [openConfirm, setOpenConfirm] = useState(false);
   const [inputValue, setInputValue] = useState<string>("");
 
-  const [qtn, setQtn] = useState(initialData?.qtnNo? true:false);
   const [boxes, setBoxes] = useState(initialData?.boxes?true:false);
   const [isDone, setIsDone] = useState(initialData?.payment?true:false);
   const [isDelivered, setIsDelivered] = useState(initialData?.delivery? true:false); 
@@ -99,10 +98,6 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
   };
   
   const handleCheckboxChange = (name:string) => {
-    if(name === "qtn"){
-      if(qtn){setQtn(false); form.setValue('qtn',false)}
-      else {setQtn(true); form.setValue('qtn',true)}
-    };
     if(name === "boxes"){
       if(boxes){
         setBoxes(false); 
@@ -122,7 +117,7 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
       else {setIsDone(true); form.setValue('payment',true)}
     };
     if(name === "delivery"){
-      if(isDelivered){setIsDelivered(false); form.setValue('delivery',false)}
+      if(isDelivered){setIsDelivered(false); form.setValue('delivery',false); form.setValue('confirmed',false);}
       else {setIsDelivered(true); form.setValue('delivery',true)}
     };
   };
@@ -137,13 +132,10 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     delivery:false,
     deliveryDays:undefined,
     po:true,
-    qtn:qtn,
     boxes:boxes,
-    sgst:undefined,
-    cgst:undefined,
+    sgst:9,
+    cgst:9,
     igst:0,
-    transporter:"",
-    transporterSelf:false,
   };
   
   const defaultValues = initialData ? {
@@ -235,35 +227,15 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     }
   };
 
-  const onDownload = async() => {
-    try {
-      const prodData = form.getValues('products')
-      const response = await axios.post('/api/edit-excel', { rowIndex:36, products:prodData }, {
-        responseType: 'blob',
-      });
-      const blob = await response.data;
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'updated_purchase_order.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      console.error('Error updating Excel file:', error);
-    }
-  };
-  
-
   const onSubmit = async(data: z.infer<typeof formSchema>) => {   
     try {
       setLoading(true);
       let response;
-      if(initialData) response = await updatePO(initialData,transformPoData(data),data.id);
+      if(initialData) response = await updatePO(initialData, transformPoData(data), initialData.id);
       else response = await submitPO(transformPoData(data));
       console.log(response);
       if (response.status === 200) {
-        toast.success(initialData? "Purchase Order Updated" : "Purchase Order Created");
+        toast.success("Inventory Updated");
         router.refresh();
         //router.back();
       } else if(response.status === 400 || response.status === 401) {
@@ -281,8 +253,8 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
     try {
       setLoading(true);
       if(initialData?.id){
-        const user_delete = await deletePO(initialData?.id, form.getValues('confirmed')) 
-        toast.success('Product deleted.');
+        const user_delete = await deletePO(initialData?.id, true); 
+        toast.success('PO deleted.');
         router.refresh();
         router.push(`/orders`);
       }
@@ -295,10 +267,11 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
   };
 
   useEffect(()=>{
-    form.setValue('po', true);
+    form.setValue('po', false);
     form.setValue('user', user || "");
     form.setValue(`products.0.index`,'1');
-  });
+    form.setValue('confirmed', true);
+  })
 
   return (
     <>
@@ -306,6 +279,13 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
       isOpen={open} 
       onClose={() => setOpen(false)}
       onConfirm={onDelete}
+      loading={loading}
+      />
+      <ConfirmModal 
+      isOpen={openConfirm} 
+      onClose={() => setOpenConfirm(false)}
+      onConfirm={()=>{form.handleSubmit(onSubmit); setOpenConfirm(false)}}
+      description={(isDelivered && initialData)? "Undo previous product quantities & update with new quantities ?": isDelivered ? "Product quantities will be updated.": "Product quantities will not be updated as delivery is pending!"}
       loading={loading}
       />
       <Form {...form}>
@@ -335,20 +315,6 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
           </div>
           <Separator />
           <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="id"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>PO. No.<span className="text-red-600">*</span></FormLabel>
-                  <FormDescription>Purchase Order Code eg: PO2406-27</FormDescription>
-                  <FormControl>
-                    <Input placeholder="Your answer" disabled={loading || !!initialData} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="supplierId"
@@ -421,80 +387,6 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
               )}
             />
           </div>
-          <div className="flex items-center space-x-2">
-          <FormField
-            control={form.control}
-            name="qtn"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={()=>{field.onChange; handleCheckboxChange("qtn")}}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>
-                    Quotation
-                  </FormLabel>
-                  <FormMessage/>
-                </div>
-              </FormItem>
-            )}
-          />
-          </div>
-          { qtn &&  <div className="animate-ease-in grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="qtnNo"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel htmlFor="quotation-number">Qtn. No.</FormLabel>
-                  <FormDescription>Enter the quotation number.</FormDescription>
-                  <FormControl>
-                    <Input placeholder="Enter quotation number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="qtnDate"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel htmlFor="date">Date</FormLabel>
-                  <FormDescription>Select date of the quotation.</FormDescription>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? format(field.value, "PPP") : "Pick a date"}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          }
           <div className="h-3"></div>
           <div className={cn( boxes? "grid-cols-12":"grid-cols-10", "grid gap-4")}>
             <div className="space-y-2 col-span-1"><h4>S.No.</h4></div>
@@ -869,41 +761,8 @@ export const PurchaseForm:React.FC<PurchaseFormProps> = ({
               />
             ):(<div className="w-full"></div>)}
           </div>
-          <FormField
-            control={form.control}
-            name="transportSelf"
-            render={({ field }) => (
-              <FormItem className="pt-1">
-                <div className="flex items-center gap-3">
-                  <FormControl>
-                    <Checkbox
-                      className="rounded-lg"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      />
-                  </FormControl>
-                  <FormLabel>Freight / Transportation on our side.</FormLabel>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="transporter"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Transporter<span className="text-red-600">*</span></FormLabel>
-                <FormDescription>transporter details.</FormDescription>
-                <FormControl>
-                  <Input placeholder="Your answer" disabled={loading} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <div className="flex justify-between items-center">
-            <Button className="rounded-2xl bg-[#AAAA00] hover:bg-[#B5B500] font-semibold " variant="default" type="submit" disabled={loading} >
+            <Button className="rounded-2xl bg-[#AAAA00] hover:bg-[#B5B500] font-semibold " variant="default" type="button" disabled={loading} onClick={() => setOpenConfirm(true)}>
               {loading? 
                 <div role="status">
                     <svg aria-hidden="true" className="w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -1,6 +1,6 @@
 "use server"
 import { getSignInStatus } from "@/lib/get-signin-status";
-import {formSchema} from "./text-area"
+import {formSchema} from "../app/(site)/(admin)/inventory/quick-product-add/_components/text-area"
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";

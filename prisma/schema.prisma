@@ -96,17 +96,16 @@ model Process {
   name    String
   batches Batch[] @relation("ProcessToBatch")
 }
-
+// orders which have batches are started
 model Batch {
-  id        String         @id @default(uuid())
-  orderId   String
-  order     Order          @relation("OrderToBatch", fields: [orderId], references: [id], onDelete: Cascade)
+  id        String  @id @default(uuid())
   batch     String
+  orderId   String
+  order     Order   @relation("OrderToBatch", fields: [orderId], references: [id], onDelete: Cascade)
   processId String
-  process   Process        @relation("ProcessToBatch", fields: [processId], references: [id])
-  completed Boolean        @default(false)
-  logs      Log[]          @relation("BatchToProcess")
-  stockLogs OutStockLogs[] @relation("BatchToOutStockLogs")
+  process   Process @relation("ProcessToBatch", fields: [processId], references: [id])
+  completed Boolean @default(false)
+  logs      Log[]   @relation("BatchToProcess")
 
   @@index([processId])
   @@index([orderId])
@@ -120,8 +119,9 @@ model Log {
 
   quantity Int @default(0)
 
-  start DateTime @default(now())
-  pause DateTime @updatedAt
+  stockLogs OutStock[] @relation("BatchLogsToOutStockLogs")
+  start     DateTime       @default(now())
+  pause     DateTime       @updatedAt
 
   @@index([batchId])
 }
@@ -158,7 +158,7 @@ model Product {
   valueUnit         String          @db.VarChar(15)
   quantity          Int
   inQuantity        ProductIn[]
-  outQuantity       OutStockLogs[]  @relation("ProductToOutStockLogs")
+  outQuantity       OutStock[]  @relation("ProductToOutStockLogs")
   updatedAt         DateTime        @updatedAt
 
   @@index([productCategoryId])
@@ -202,16 +202,16 @@ model ProductIn {
   @@index([instockId])
 }
 
-model OutStockLogs {
-  id        String   @id @default(cuid())
-  productId String
-  products  Product  @relation("ProductToOutStockLogs", fields: [productId], references: [code])
-  userId    String
-  batchId   String
-  batch     Batch    @relation("BatchToOutStockLogs", fields: [batchId], references: [id])
-  quantity  Int
-  updatedAt DateTime @updatedAt
+model OutStock {
+  id         String   @id @default(cuid())
+  userId     String
+  quantity   Int
+  productId  String
+  products   Product  @relation("ProductToOutStockLogs", fields: [productId], references: [code])
+  batchLogId String
+  batch      Log      @relation("BatchLogsToOutStockLogs", fields: [batchLogId], references: [id])
+  updatedAt  DateTime @updatedAt
 
   @@index([productId])
-  @@index([batchId])
+  @@index([batchLogId])
 }

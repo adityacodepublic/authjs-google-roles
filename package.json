@@ -29,6 +29,7 @@
     "lucide-react": "^0.404.0",
     "next": "14.2.4",
     "next-auth": "^5.0.0-beta.19",
+    "qr-scanner": "^1.4.2",
     "react": "^18",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18",

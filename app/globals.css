@@ -105,7 +105,7 @@
     }
     .glass {
       background: rgba(237, 245, 247, 0.61); 
-      backdrop-filter: blur(20px); 
+      backdrop-filter: blur(10px); 
       border-radius: 1px;
       box-shadow: 0 0 5px rgba(192, 192, 180, 0.24);
     }
@@ -134,8 +134,10 @@
         transform: translateY(0);
       }
     }
-  
     .animate-ease-in {
       animation: easeIn 0.5s ease-in-out;
+    }
+    .scanner-outline {
+      outline:rgba(0, 0, 0, .25) solid 50vmax
     }
   }
