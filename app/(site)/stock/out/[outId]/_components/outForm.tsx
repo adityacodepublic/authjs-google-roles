@@ -42,7 +42,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { AlertModal } from "@/components/alert-modal";
 import { formSchema } from "@/lib/_schema/inventory/outSchema";
-import { deleteOut, submitOut, updateOut } from "@/actions/out-actions";
+import { deleteOut, submitOut, updateOut } from "@/actions/out-form-actions";
 import { Scanner } from "@/components/scanner";
 
 
@@ -160,7 +160,7 @@ export const OutForm:React.FC<OutProps> = ({
               name={`productId`}
               render={({ field }) => (
                 <FormItem className="flex flex-col space-y-2 col-span-2">
-                  <FormLabel>Products<span className="text-red-600">*</span></FormLabel>
+                  <FormLabel>Products <span className="text-red-600">*</span></FormLabel>
                   <Popover>
                     <div className="">
                       <PopoverTrigger asChild>
@@ -228,7 +228,7 @@ export const OutForm:React.FC<OutProps> = ({
               name="quantity"
               render={({ field }) => (
                 <FormItem className="space-y-2 col-span-2">
-                  <FormLabel>Quantity<span className="text-red-600">*</span></FormLabel>
+                  <FormLabel>Quantity <span className="text-red-600">*</span></FormLabel>
                   <FormControl>
                     <Input placeholder="Quantity of product out" type="number" disabled={loading} {...field} />
                   </FormControl>
@@ -241,7 +241,7 @@ export const OutForm:React.FC<OutProps> = ({
               name="batchLogId"
               render={({ field }) => (
                 <FormItem className="space-y-2 col-span-2">
-                  <FormLabel>Batch LogId<span className="text-red-600">*</span></FormLabel>
+                  <FormLabel>Batch LogId <span className="text-red-600">*</span></FormLabel>
                   <FormControl>
                     <><div className="flex gap-4">
                         <Input placeholder="Scan or enter id" disabled={loading} {...field} />

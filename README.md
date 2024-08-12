@@ -17,4 +17,6 @@
 ```
 
 ## todo-> user role assign -> revalidate on signin(done), new user creation(authjs), role change(form)
-##     -> form restore previous data
+##     -> process form, order data processor, roles form
+## prisma transactions and schema validation in actions
+## dynamic imports s=code splitting partial pre rendering

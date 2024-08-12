@@ -6,7 +6,7 @@ export const LoginForm = () => {
 
 
   return(
-    <CardWrapper headerLabel="Sign in to PCORP" headerDescription= "Welcome back! Sign in to continue" ImageLabel="@/components/elements/small.svg">
+    <CardWrapper headerLabel="Sign in to PCORP" headerDescription= "Welcome back! Sign in to continue" ImageLabel="@/public/small.svg">
       <div className="flex items-center justify-center pt-[3.4rem] m-5">
         <form
           action={async () => {

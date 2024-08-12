@@ -1,5 +1,5 @@
 import Image from "next/image";
-import logo from "@/components/elements/small.svg"
+import logo from "@/public/small.svg"
 import Menu from "./nav-menu";
 import { SignedIn } from "./signed-in";
 

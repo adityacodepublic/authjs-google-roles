@@ -41,8 +41,8 @@ import { formSchema }  from "@/lib/_schema/inventory/quickIn-Schema"
 import { formSchema as initialValues}  from "@/lib/_schema/inventory/purchaseOrderSchema"
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCurrentId } from "@/hooks/use-current-id";
-import { deletePO, submitPO, updatePO } from "@/actions/po-actions";
-import { transformPoData } from "@/lib/transforms/quickIn-transforms";
+import { deletePO, submitPO, updatePO } from "@/actions/po-form-actions";
+import { transformPoData } from "@/lib/transforms/po-quickIn-transforms";
 
 type supplierData = {
   id: string;

@@ -1,4 +1,4 @@
-import logo from "@/components/elements/small.svg"
+import logo from "@/public/small.svg"
 import Image from "next/image";
 
 import { 
@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardFooter
 } from "../ui/card";
-import { Button } from "../ui/button";
 import { signOut } from "next-auth/react";
 
 interface CardWrapperProps {

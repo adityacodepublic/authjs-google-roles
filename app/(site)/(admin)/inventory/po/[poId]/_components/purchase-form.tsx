@@ -42,7 +42,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { useCurrentId } from "@/hooks/use-current-id";
 import axios from "axios";
-import { deletePO, submitPO, updatePO } from "@/actions/po-actions";
+import { deletePO, submitPO, updatePO } from "@/actions/po-form-actions";
 import { transformPoData } from "@/lib/transforms/po-data-transform";
 
 type supplierData = {

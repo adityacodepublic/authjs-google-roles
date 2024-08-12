@@ -8,6 +8,7 @@ import { revalidateTag } from "next/cache"
 
 export default {
   providers: [Google],
+  adapter: PrismaAdapter(prismadb),
   callbacks: {
     async session({ token, session}) {
       if(token.sub && session.user) {
@@ -21,8 +22,8 @@ export default {
     async jwt({ token }) {
       if(!token.sub) return token;
       const existingUser = await getUserById(token.sub);
-      if(!existingUser) return token;
-      token.role = existingUser.role || "null"
+      if(!existingUser) {token.role="null"; return token};
+      token.role = existingUser.role
       return token;
     },
     async signIn(){
@@ -30,7 +31,6 @@ export default {
       return true;
     },
   },
-  adapter: PrismaAdapter(prismadb),
   session: {strategy: "jwt"},
 
 } satisfies NextAuthConfig;
