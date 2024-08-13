@@ -70,13 +70,13 @@ model Order {
 }
 
 model ProcessFlow {
-  name      String    @id @default(uuid())
+  name      String    @id 
   process   Process[]
   orders    Order[]
 }
 
 model Process {
-  name            String      @id @default(uuid())
+  name            String      @id 
   position        Int
   processFlowName String
   processFlow     ProcessFlow @relation(fields: [processFlowName], references: [name], onDelete: Cascade)

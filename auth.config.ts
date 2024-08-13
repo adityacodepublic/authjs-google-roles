@@ -10,6 +10,14 @@ export default {
   providers: [Google],
   adapter: PrismaAdapter(prismadb),
   callbacks: {
+    async jwt({ token }) {
+      if(!token.sub) return token;
+      const existingUser = await getUserById(token.sub);
+      if(!existingUser) return token;
+      token.role = existingUser.role;
+      console.log("not returned");
+      return token;
+    },
     async session({ token, session}) {
       if(token.sub && session.user) {
         session.user.id = token.sub;
@@ -19,18 +27,14 @@ export default {
       }
       return session;
     },
-    async jwt({ token }) {
-      if(!token.sub) return token;
-      const existingUser = await getUserById(token.sub);
-      if(!existingUser) {token.role="null"; return token};
-      token.role = existingUser.role
-      return token;
-    },
     async signIn(){
       revalidateTag("user");
       return true;
     },
   },
-  session: {strategy: "jwt"},
+  session: {
+    strategy: "jwt",
+    maxAge: 6 * 60 * 60, // 1 day (6 hours)
+  },
 
 } satisfies NextAuthConfig;

@@ -38,7 +38,7 @@ import { DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormEvent, forwardRef, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { createProductCategory, deleteProductCategory, updateProductCategory } from "@/actions/product-form-action";
 
@@ -100,6 +100,7 @@ interface MultiSelectProps
    */
   editableFields?: boolean;
 
+  editRedirect?: string;
   /**
    * Allow adding new fields by the user.
    * Requires custom submit logic to be setup in the component.  
@@ -131,13 +132,14 @@ export const MultiSelect = forwardRef<
       addNewFields = true,
       editableFields = true,
       loading,
+      editRedirect,
       setLoading,
       ...props
     },
     ref
   ) => {  
     
-    const params = useParams();
+    const router = useRouter();
     const inputRef = useRef<HTMLInputElement>(null);
     const [frameworks, setFrameworks] = useState<Data[]>(data);
     const [selectedValues, setSelectedValues] = useState<Data[]>(frameworks.filter(item => defaultValue.includes(item.id)));
@@ -249,7 +251,7 @@ export const MultiSelect = forwardRef<
             className="w-[300px] justify-between text-foreground"
           >
               <span className="truncate">
-                {selectedValues.length === 0 && placeholder}
+                {selectedValues.length === 0 && <span className="text-muted-foreground font-normal">{`Select ${placeholder}s`}</span>}
                 {selectedValues.length === 1 && selectedValues[0]?.name}
                 {selectedValues.length === 2 &&
                   selectedValues.map(({ name }) => name).join(", ")}
@@ -310,6 +312,23 @@ export const MultiSelect = forwardRef<
                     <div className={cn("mr-2 h-4 w-4")} />
                     <Edit2 className="mr-2 h-2.5 w-2.5" />
                     Edit Categories
+                  </CommandItem>
+                </CommandGroup>
+                </>
+              }
+              { editRedirect && 
+                <>
+                <CommandSeparator alwaysRender/>
+                <CommandGroup>
+                  <CommandItem
+                    value={`:${inputValue}:`} // HACK: that way, the edit button will always be shown
+                    className="text-xs text-muted-foreground"
+                    onSelect={() => {router.push(`${editRedirect}`)}}
+                    disabled={loading}
+                  >
+                    <div className={cn("mr-2 h-4 w-4")} />
+                    <Edit2 className="mr-2 h-2.5 w-2.5" />
+                    {`Add ${placeholder}`}
                   </CommandItem>
                 </CommandGroup>
                 </>

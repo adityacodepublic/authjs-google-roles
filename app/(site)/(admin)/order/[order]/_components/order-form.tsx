@@ -24,10 +24,11 @@ import { AlertModal } from "@/components/alert-modal";
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { CanSize, FilmSize, Order, organisation, WireType } from "@prisma/client";
+import { CanSize, FilmSize, Order, organisation, ProcessFlow, WireType } from "@prisma/client";
 import { createCansize, createCustomer, createFlimsize, createWiretype, deleteCansize, deleteCustomer, deleteFlimsize, deleteOrder, deleteWiretype, submitOrder, updateCansize, updateCustomer, updateFlimsize, updateOrder, updateWiretype } from "@/actions/order-form-action";
 import { formSchema } from "@/lib/_schema/orderSchema"
 import { MultiSelect } from "./multiselect";
+import { MultiSelect as Combobox} from "@/components/multiselect";
 import { useSession } from "next-auth/react";
 
 
@@ -37,15 +38,14 @@ interface OrderFormProps {
   flimSize:FilmSize[],
   canSize:CanSize[],
   wireType:WireType[],
+  processFlow:ProcessFlow[]
 }
 export const OrderForm:React.FC<OrderFormProps> = ({
-  initialData,orgs,flimSize,canSize,wireType
+  initialData,orgs,flimSize,canSize,wireType,processFlow
 }) => {
   const router = useRouter();
-  const [frameworks, setFrameworks] = useState<organisation[]>(orgs);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [inputValue, setInputValue] = useState<string>("");
 
   const resetValues = {
     description: "",
@@ -70,30 +70,12 @@ export const OrderForm:React.FC<OrderFormProps> = ({
     defaultValues
   });
 
-
-  const createFramework = async (name: string) => {
-    try {
-      setLoading(true);
-      const response = await createCustomer(name);
-      if ('id' in response) { 
-          const user = response;
-          toast.success('Filter Group Created');
-          const newFramework = {
-            id: user.id,
-            name: name,
-          };
-          setFrameworks((prev) => [...prev, newFramework]);
-          setInputValue('');
-      } else {
-        toast.error('Something went wrong.');
-      }
-    } catch (error: any) {
-      toast.error('Something went wrong.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  function convertProcess(processFlow: { name: string; }[]): { id: string; name: string; }[] {
+    return processFlow.map(item => ({
+        id: item.name,
+        name: item.name
+    }));
+  }
 
   const onSubmit = async(data: z.infer<typeof formSchema>) => {
     try {
@@ -333,6 +315,31 @@ export const OrderForm:React.FC<OrderFormProps> = ({
                 <FormControl>
                   <Input placeholder="Your answer" disabled={loading} {...field} type="number" />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="flowName"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Customer <span className="text-red-600">*</span></FormLabel>
+                <FormDescription>
+                  Select customer.
+                </FormDescription>
+                  <FormControl>
+                    <Combobox
+                      data={convertProcess(processFlow)}
+                      onValueChange={field.onChange}
+                      defaultValue={initialData? [initialData?.flowName]:[]}
+                      placeholder="process flow"
+                      editableFields={false}
+                      editRedirect="/production/process/new"
+                      loading={loading}
+                      setLoading={setLoading}
+                    />
+                  </FormControl>
                 <FormMessage />
               </FormItem>
             )}
