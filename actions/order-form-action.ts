@@ -13,8 +13,9 @@ export const getFormData = async (id:string) => {
   const flim = prismadb.filmSize.findMany();
   const can = prismadb.canSize.findMany();
   const wire = prismadb.wireType.findMany();
-  const [initial, customer, flims, cans, wires] = await Promise.all([initialData,customers, flim, can, wire]);
-  return {initial, customer, flims, cans, wires};
+  const processFlow = prismadb.processFlow.findMany();
+  const [initial, customer, flims, cans, wires, flows] = await Promise.all([initialData,customers, flim, can, wire, processFlow]);
+  return {initial, customer, flims, cans, wires, flows};
 }
 
 // CUSTOMER

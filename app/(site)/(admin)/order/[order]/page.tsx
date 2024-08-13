@@ -11,7 +11,7 @@ const AddOrderPage = async ({
   return ( 
     <div className="flex-col bg-[#fffff5]">
       <div className="flex-1 justify-center items-center space-y-4 p-2 py-2">
-        <OrderForm initialData={data.initial} orgs={data.customer} flimSize={data.flims} canSize={data.cans} wireType={data.wires}/>
+        <OrderForm initialData={data.initial} orgs={data.customer} flimSize={data.flims} canSize={data.cans} wireType={data.wires} processFlow={data.flows}/>
       </div>
     </div>
   );
