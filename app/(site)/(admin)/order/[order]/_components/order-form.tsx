@@ -324,9 +324,9 @@ export const OrderForm:React.FC<OrderFormProps> = ({
             name="flowName"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Customer <span className="text-red-600">*</span></FormLabel>
+                <FormLabel>Process Flow <span className="text-red-600">*</span></FormLabel>
                 <FormDescription>
-                  Select customer.
+                  Select production process flow.
                 </FormDescription>
                   <FormControl>
                     <Combobox

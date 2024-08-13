@@ -251,7 +251,7 @@ export const MultiSelect = forwardRef<
             className="w-[300px] justify-between text-foreground"
           >
               <span className="truncate">
-                {selectedValues.length === 0 && <span className="text-muted-foreground font-normal">{`Select ${placeholder}s`}</span>}
+                {selectedValues.length === 0 && <span className="text-muted-foreground font-normal">{`Select ${placeholder}${multiselect ? "s" : ""}`}</span>}
                 {selectedValues.length === 1 && selectedValues[0]?.name}
                 {selectedValues.length === 2 &&
                   selectedValues.map(({ name }) => name).join(", ")}
@@ -323,7 +323,14 @@ export const MultiSelect = forwardRef<
                   <CommandItem
                     value={`:${inputValue}:`} // HACK: that way, the edit button will always be shown
                     className="text-xs text-muted-foreground"
-                    onSelect={() => {router.push(`${editRedirect}`)}}
+                    onSelect={() => {
+                      try {
+                        setLoading(true);
+                        router.push(`${editRedirect}`)
+                      } catch (error) {
+                        console.log(error);
+                      } finally {setLoading(false)}
+                    }}
                     disabled={loading}
                   >
                     <div className={cn("mr-2 h-4 w-4")} />

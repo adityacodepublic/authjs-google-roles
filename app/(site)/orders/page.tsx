@@ -10,7 +10,7 @@ const OrdersPage = async() => {
     return (
     <div className="w-full h-full">
         <SignIn/>
-        <h1 className="text-black">{session?.user?.role}</h1>
+        <h1 className="text-black">{JSON.stringify(session)}</h1>
     </div>
     )
 }

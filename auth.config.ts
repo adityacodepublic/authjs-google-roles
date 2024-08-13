@@ -10,15 +10,14 @@ export default {
   providers: [Google],
   adapter: PrismaAdapter(prismadb),
   callbacks: {
-    async jwt({ token }) {
+    async jwt({ token}) {
       if(!token.sub) return token;
       const existingUser = await getUserById(token.sub);
       if(!existingUser) return token;
       token.role = existingUser.role;
-      console.log("not returned");
       return token;
     },
-    async session({ token, session}) {
+    async session({ token, session }) {
       if(token.sub && session.user) {
         session.user.id = token.sub;
       }
