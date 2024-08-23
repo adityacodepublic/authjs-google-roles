@@ -7,11 +7,13 @@ import {
 import { MenuIcon } from "lucide-react";
 import SignOutButton from "./auth/signout-button";
 import { getSignInStatus } from "@/lib/get-signin-status";
+import { getCurrentId } from "@/lib/get-current-Id";
+import prismadb from "@/lib/prismadb";
+import { signOut } from "@/auth";
 
 export const Menu = async() => {
-
   const session = await getSignInStatus();
-
+  console.log("navmenu");
   return (
     <div>
       {session &&

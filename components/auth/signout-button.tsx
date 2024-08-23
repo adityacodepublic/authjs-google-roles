@@ -25,4 +25,6 @@ const SignOutButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
     )
   }
 )
+SignOutButton.displayName = "SignOutButton"
+
 export default SignOutButton;

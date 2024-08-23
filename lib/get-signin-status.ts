@@ -1,7 +1,7 @@
-import { auth } from "@/auth"
+import getAuthSession from "./getAuthSession";
 
 export const getSignInStatus = async() => {
-  const session = await auth();
+  const session = await getAuthSession();
   if(session) return true;
   return false;
 }

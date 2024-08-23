@@ -1,21 +1,20 @@
-import getData from "@/actions/get-data"
-import { auth } from "@/auth"
+"use client"
 import { CardWrapper } from "@/components/auth/card-wrapper";
 import { Button } from "@/components/ui/button";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
-const OrdersPage = async() => {
-
-    // const orders = await getData(20);
-    // const session = await auth();
+const SettingsPage = async() => {
+    const router = useRouter();
 
     return (
-    <div className="w-full h-full">
+    <div className="w-full h-full flex items-center justify-center">
       <CardWrapper headerLabel="Users" headerDescription="view users, edit user roles...">
-        <Button onClick={redirect("./users")}>Users</Button>
+        <div className="flex justify-center items-center space-y-4 py-4">
+          <Button onClick={()=>{router.push("/settings/users")}} className="self-center">Users</Button>
+        </div>
       </CardWrapper>
     </div>
     )
 }
 
-export default OrdersPage;
+export default SettingsPage;
