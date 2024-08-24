@@ -27,7 +27,7 @@ import { toast } from "react-hot-toast";
 import { Separator } from "@/components/ui/separator";
 import { Report } from "@prisma/client";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { deleteReport, submitReport, updateReport } from "@/actions/report-form-actions";
+import { deleteReport, submitReport, updateReport } from "@/actions/form-actions/report-actions";
 import { formSchema } from "@/lib/_schema/reports/reports-schema";
 import { Input } from "@/components/ui/input";
 import { Trash } from "lucide-react";

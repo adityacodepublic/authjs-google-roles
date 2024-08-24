@@ -2,7 +2,7 @@ import { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import prismadb from "./lib/prismadb"
-import { getUserById } from "./actions/get-user"
+import { getUserById } from "./actions/auth/get-user"
 import { revalidateTag } from "next/cache"
 
 

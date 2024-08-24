@@ -1,6 +1,6 @@
 "use server"
-import prismadb from "../lib/prismadb";
-import { getCurrentId } from "../lib/auth/get-current-Id";
+import prismadb from "../../lib/prismadb";
+import { getCurrentId } from "../../lib/auth/get-current-Id";
 import { signOut } from "@/auth";
 import { cache } from "react";
 

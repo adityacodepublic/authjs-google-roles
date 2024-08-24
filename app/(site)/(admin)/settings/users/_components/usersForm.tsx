@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { updateUser } from "@/actions/user-actions";
+import { updateUser } from "@/actions/form-actions/user-actions";
 import toast from "react-hot-toast";
 import { z } from "zod";
 import { userSchema } from "@/lib/_schema/settings/userSchema";
