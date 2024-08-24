@@ -1,7 +1,7 @@
 import SignOutButton from "@/components/auth/signout-button";
 import { Button } from "@/components/ui/button"
-import { getCurrentRole } from "@/lib/get-current-role";
-import { getSignInStatus } from "@/lib/get-signin-status";
+import { getCurrentRole } from "@/lib/auth/get-current-role";
+import { getSignInStatus } from "@/lib/auth/get-signin-status";
 import { redirect } from "next/navigation";
 
 

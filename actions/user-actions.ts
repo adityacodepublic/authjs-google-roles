@@ -1,9 +1,9 @@
 "use server"
-import { getSignInStatus } from "@/lib/get-signin-status";
+import { getSignInStatus } from "@/lib/auth/get-signin-status";
 import prismadb from "@/lib/prismadb";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
-import { getCurrentRole } from "@/lib/get-current-role";
+import { getCurrentRole } from "@/lib/auth/get-current-role";
 import { userSchema } from "@/lib/_schema/settings/userSchema";
 
 

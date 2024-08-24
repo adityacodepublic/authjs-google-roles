@@ -1,4 +1,4 @@
-import { getSignInStatus } from "@/lib/get-signin-status";
+import { getSignInStatus } from "@/lib/auth/get-signin-status";
 
 interface SignedOutProps {
   children: React.ReactNode;

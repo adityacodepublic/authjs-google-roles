@@ -1,6 +1,6 @@
 "use server"
 import prismadb from "../lib/prismadb";
-import { getCurrentId } from "../lib/get-current-Id";
+import { getCurrentId } from "../lib/auth/get-current-Id";
 import { signOut } from "@/auth";
 import { cache } from "react";
 
@@ -13,13 +13,4 @@ export const isUser = cache(async() => {
       await signOut();
     };
   };
-  console.log("called");
 });
-
-// export async function validateUser() {
-//     const isValidUser = await isUser();
-//     if (!isValidUser) {
-//       await signOut();
-//       console.log("user invalidated");
-//     }
-// };

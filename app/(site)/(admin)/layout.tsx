@@ -1,4 +1,4 @@
-import { getCurrentRole } from '@/lib/get-current-role';
+import { getCurrentRole } from '@/lib/auth/get-current-role';
 import { SessionProvider } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 

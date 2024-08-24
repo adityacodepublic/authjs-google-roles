@@ -41,3 +41,15 @@ model Account {
 
   @@id([provider, providerAccountId])
 }
+
+model Report {
+  id          String @id @default(cuid())
+  name        String
+  phone       String
+  title       String
+  description String
+  address     String
+  type        String
+  latitude    Float
+  longitude   Float
+}
