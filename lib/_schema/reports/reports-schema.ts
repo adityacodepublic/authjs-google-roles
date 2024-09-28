@@ -11,5 +11,5 @@ export const formSchema = z.object({
   type: z.string().min(1, { message: "Select the type of the incident." }),
   latitude: z.coerce.number(),
   longitude: z.coerce.number(),
-
+  valid: z.boolean().optional(),
 });

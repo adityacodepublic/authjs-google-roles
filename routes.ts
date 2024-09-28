@@ -6,12 +6,10 @@ export const authRoutes = [
 
 export const apiAuthPrefix = "/api/auth";
 
-export const DEFAULT_lOGIN_REDIRECT = "/orders";
+export const DEFAULT_lOGIN_REDIRECT = "/reports/new";
 
 
 const roleRoute = {
   superadmin: ["/"],
-  manage:     ["/orders","stock","/inventory","migrateData","order"],
-  stock:      ["/stock",]
 }
 

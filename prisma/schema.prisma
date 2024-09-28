@@ -52,4 +52,5 @@ model Report {
   type        String
   latitude    Float
   longitude   Float
+  valid       Boolean @default(false)
 }

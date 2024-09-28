@@ -26,13 +26,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-hot-toast";
 import { Separator } from "@/components/ui/separator";
 import { Report } from "@prisma/client";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { deleteReport, submitReport, updateReport } from "@/actions/form-actions/report-actions";
 import { formSchema } from "@/lib/_schema/reports/reports-schema";
 import { Input } from "@/components/ui/input";
 import { Trash } from "lucide-react";
 import { AlertModal } from "@/components/alert-modal";
 import { useRouter } from "next/navigation";
+import LocationPicker from "@/components/location-select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TextareaProps {
   initialData: Report | null
@@ -59,6 +60,10 @@ export const ReportForm:React.FC<TextareaProps> = ({
     defaultValues: initialData ? initialData : resetValues
   });
 
+  const handleValueChange = (location: { lat: number; lng: number }) => {
+    form.setValue("latitude", location.lat);
+    form.setValue("longitude", location.lng);
+  };
 
   const onSubmit = async(data: z.infer<typeof formSchema>) => {
     try {
@@ -237,8 +242,29 @@ export const ReportForm:React.FC<TextareaProps> = ({
               </FormItem>
             )}
           />
+          <LocationPicker onValueChange={handleValueChange} />
+          <FormField
+            control={form.control}
+            name="valid"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Report Verified ?
+                  </FormLabel>
+                  <FormMessage/>
+                </div>
+              </FormItem>
+            )}
+          />
           <div className="flex justify-between items-center">
-            <Button className="rounded-2xl bg-[#AAAA00] hover:bg-[#B5B500] font-semibold " variant="default" type="submit" disabled={loading} >
+            <Button className="rounded-2xl bg-[#46646a] hover:bg-[#3281a6] font-semibold " variant="default" type="submit" disabled={loading} >
               {loading? 
                 <div role="status">
                     <svg aria-hidden="true" className="w-4 h-4 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">

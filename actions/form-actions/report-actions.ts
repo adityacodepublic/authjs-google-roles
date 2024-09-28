@@ -13,7 +13,8 @@ export const submitReport = async (data: z.infer<typeof formSchema>):Promise<{st
     if(await getSignInStatus() && formSchema.safeParse(data).success){
       const user = await prismadb.report.create({
         data: {
-          ...data
+          ...data,
+          valid: data.valid ? data.valid : false
         },
       });
       revalidateTag("report");
