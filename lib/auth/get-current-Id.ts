@@ -1,7 +1,8 @@
-import { cache } from "react";
-import getAuthSession from "./getAuthSession";
+import "server-only";
+
+import getAuth from "@/lib/auth/get-auth";
 
 export const getCurrentId = async() => {
-  const session = await getAuthSession();
+  const session = await getAuth();
   return session?.user.id;
 };

@@ -1,5 +1,5 @@
 {
-  "name": "order",
+  "name": "safety-admin",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -45,7 +45,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.4",
     "postcss": "^8.5.3",
-    "prisma": "^5.22.0",
+    "prisma": "^6.6.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3"
   }

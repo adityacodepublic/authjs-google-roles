@@ -1,6 +1,8 @@
-import { auth } from "@/auth";
+import "server-only";
+
+import getAuth from "./get-auth";
 
 export const getCurrentRole = async() => {
-  const session = await auth();
-  return session?.user.role;
+  const session = await getAuth();
+  return session?.user?.role;
 }

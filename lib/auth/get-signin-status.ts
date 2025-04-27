@@ -1,7 +1,9 @@
-import getAuthSession from "./getAuthSession";
+import "server-only";
+
+import getAuth from "./get-auth";
 
 export const getSignInStatus = async() => {
-  const session = await getAuthSession();
-  if(session) return true;
+  const session = await getAuth();
+  if(session?.user) return true;
   return false;
 }

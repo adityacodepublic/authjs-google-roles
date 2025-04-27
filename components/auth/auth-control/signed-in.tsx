@@ -1,16 +1,16 @@
 import { getSignInStatus } from "@/lib/auth/get-signin-status";
 
-interface SignedOutProps {
+interface SignedInProps {
   children: React.ReactNode;
 };
 
-export const SignedOut = async({
+export const SignedIn = async({
   children,
-}: SignedOutProps) => {
+}: SignedInProps) => {
   const status = await getSignInStatus();
   return (
-    <div>
-      {status ? null : children}
-    </div>
+    <>
+      {status ? children : null}
+    </>
   );
 };
